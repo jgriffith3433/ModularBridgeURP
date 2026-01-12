@@ -1,0 +1,46 @@
+{
+    "name": "GameInputActions",
+    "maps": [
+        {
+            "name": "Gameplay",
+            "actions": [
+                {
+                    "name": "Point",
+                    "type": "Value",
+                    "expectedControlType": "Vector2",
+                    "interactions": "",
+                    "processors": "",
+                    "bindings": [
+                        {
+                            "path": "<Mouse>/position",
+                            "interactions": "",
+                            "processors": "",
+                            "groups": "",
+                            "action": "Point",
+                            "isComposite": false,
+                            "isPartOfComposite": false
+                        }
+                    ]
+                },
+                {
+                    "name": "Click",
+                    "type": "Button",
+                    "expectedControlType": "Button",
+                    "interactions": "",
+                    "processors": "",
+                    "bindings": [
+                        {
+                            "path": "<Mouse>/leftButton",
+                            "interactions": "",
+                            "processors": "",
+                            "groups": "",
+                            "action": "Click",
+                            "isComposite": false,
+                            "isPartOfComposite": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
