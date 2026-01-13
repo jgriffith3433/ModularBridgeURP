@@ -8,8 +8,14 @@ using UnityEngine;
 public class GridObject : MonoBehaviour
 {
     [Header("Grid Properties")]
-    [SerializeField] private Vector3Int gridSize = Vector3Int.one;
-    [SerializeField] private Vector3Int gridOffset = Vector3Int.zero;
+    [Tooltip("Minimum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
+    [SerializeField] private Vector3Int gridMin = Vector3Int.zero;
+    [Tooltip("Maximum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
+    [SerializeField] private Vector3Int gridMax = Vector3Int.zero;
+    
+    [Header("Dependencies")]
+    [SerializeField] private GridSystem gridSystem;
+    [SerializeField] private GameSettings gameSettings;
     
     [Header("Placement Materials")]
     [SerializeField] private Material validPlacementMaterial;
@@ -23,13 +29,26 @@ public class GridObject : MonoBehaviour
     private Material[][] originalMaterials;
     
     // Public properties
-    public Vector3Int GridSize => gridSize;
-    public Vector3Int GridOffset => gridOffset;
+    public Vector3Int GridMin => gridMin;
+    public Vector3Int GridMax => gridMax;
+    public Vector3Int GridSize => gridMax - gridMin + Vector3Int.one; // Calculate size from bounds
     public Vector3Int GridPosition => currentGridPosition;
     public bool IsPlaced => isPlaced;
     
     protected virtual void Awake()
     {
+        if (gridSystem == null)
+            gridSystem = Game.Instance.Grid;
+        
+        if (gameSettings == null)
+            gameSettings = Game.Instance.Settings;
+        
+        if (gameSettings == null)
+            throw new System.Exception($"[GridObject] GameSettings not assigned on {name}!");
+        
+        if (gridSystem == null)
+            throw new System.Exception($"[GridObject] GridSystem not assigned on {name}!");
+        
         CacheRenderers();
     }
     
@@ -52,7 +71,7 @@ public class GridObject : MonoBehaviour
     public void SetGridPosition(Vector3Int gridPosition)
     {
         currentGridPosition = gridPosition;
-        transform.position = Game.Instance.Grid.GridToWorld(gridPosition);
+        transform.position = gridSystem.GridToWorld(gridPosition);
     }
     
     /// <summary>
@@ -88,14 +107,14 @@ public class GridObject : MonoBehaviour
     /// </summary>
     public bool TryPlace(Vector3Int gridPosition)
     {
-        if (!Game.Instance.Grid.CanPlaceObject(gridPosition, gridSize))
+        if (!gridSystem.CanPlaceObject(gridPosition, this))
         {
             Debug.LogWarning($"[GridObject] Cannot place {name} at {gridPosition} - cells occupied");
             return false;
         }
         
         SetGridPosition(gridPosition);
-        Game.Instance.Grid.Registry.Register(this);
+        gridSystem.Registry.Register(this);
         isPlaced = true;
         isShowingPreview = false;
         
@@ -113,7 +132,7 @@ public class GridObject : MonoBehaviour
         if (!isPlaced)
             return;
         
-        Game.Instance.Grid.Registry.Unregister(this);
+        gridSystem.Registry.Unregister(this);
         isPlaced = false;
         
         OnRemoved();
@@ -167,19 +186,41 @@ public class GridObject : MonoBehaviour
     
     #region Editor Helpers
     
+    private void OnDrawGizmos()
+    {
+        // Always show grid footprint
+        Vector3 cellSize = Vector3.one * (gameSettings?.GridSettings?.CellSize ?? 1f);
+        
+        // Use semi-transparent yellow for unselected objects
+        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+        
+        for (int x = gridMin.x; x <= gridMax.x; x++)
+        {
+            for (int y = gridMin.y; y <= gridMax.y; y++)
+            {
+                for (int z = gridMin.z; z <= gridMax.z; z++)
+                {
+                    Vector3 offset = new Vector3(x, y, z);
+                    Vector3 center = transform.position + Vector3.Scale(offset, cellSize);
+                    Gizmos.DrawWireCube(center, cellSize * 0.9f);
+                }
+            }
+        }
+    }
+    
     private void OnDrawGizmosSelected()
     {
         if (!Application.isPlaying)
         {
-            // Show grid footprint in editor
-            Vector3 cellSize = Vector3.one * (Game.Instance?.Settings?.GridSettings?.CellSize ?? 1f);
+            // Show grid footprint in editor with bright color when selected
+            Vector3 cellSize = Vector3.one * (gameSettings?.GridSettings?.CellSize ?? 1f);
             
             Gizmos.color = Color.cyan;
-            for (int x = 0; x < gridSize.x; x++)
+            for (int x = gridMin.x; x <= gridMax.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = gridMin.y; y <= gridMax.y; y++)
                 {
-                    for (int z = 0; z < gridSize.z; z++)
+                    for (int z = gridMin.z; z <= gridMax.z; z++)
                     {
                         Vector3 offset = new Vector3(x, y, z);
                         Vector3 center = transform.position + Vector3.Scale(offset, cellSize);

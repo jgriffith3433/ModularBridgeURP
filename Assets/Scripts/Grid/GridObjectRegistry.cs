@@ -35,13 +35,14 @@ public class GridObjectRegistry
         
         // Register all cells this object occupies
         Vector3Int basePos = gridObject.GridPosition;
-        Vector3Int size = gridObject.GridSize;
+        Vector3Int min = gridObject.GridMin;
+        Vector3Int max = gridObject.GridMax;
         
-        for (int x = 0; x < size.x; x++)
+        for (int x = min.x; x <= max.x; x++)
         {
-            for (int y = 0; y < size.y; y++)
+            for (int y = min.y; y <= max.y; y++)
             {
-                for (int z = 0; z < size.z; z++)
+                for (int z = min.z; z <= max.z; z++)
                 {
                     Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
                     
@@ -78,13 +79,14 @@ public class GridObjectRegistry
         
         // Unregister all cells
         Vector3Int basePos = gridObject.GridPosition;
-        Vector3Int size = gridObject.GridSize;
+        Vector3Int min = gridObject.GridMin;
+        Vector3Int max = gridObject.GridMax;
         
-        for (int x = 0; x < size.x; x++)
+        for (int x = min.x; x <= max.x; x++)
         {
-            for (int y = 0; y < size.y; y++)
+            for (int y = min.y; y <= max.y; y++)
             {
-                for (int z = 0; z < size.z; z++)
+                for (int z = min.z; z <= max.z; z++)
                 {
                     Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
                     objectsByPosition.Remove(cellPos);
@@ -129,6 +131,36 @@ public class GridObjectRegistry
             for (int y = 0; y < size.y; y++)
             {
                 for (int z = 0; z < size.z; z++)
+                {
+                    Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
+                    
+                    if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
+                    {
+                        if (existingObject != ignoreObject)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /// <summary>
+    /// Check if a GridObject can be placed at a position using its bounds.
+    /// </summary>
+    public bool CanPlaceObject(Vector3Int gridPosition, GridObject checkObject, GridObject ignoreObject = null)
+    {
+        Vector3Int min = checkObject.GridMin;
+        Vector3Int max = checkObject.GridMax;
+        
+        for (int x = min.x; x <= max.x; x++)
+        {
+            for (int y = min.y; y <= max.y; y++)
+            {
+                for (int z = min.z; z <= max.z; z++)
                 {
                     Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
                     

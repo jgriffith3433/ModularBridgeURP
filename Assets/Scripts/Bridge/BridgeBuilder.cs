@@ -25,7 +25,7 @@ public static class BridgeBuilder
     /// <summary>
     /// Calculate a bridge plan between start and end positions.
     /// </summary>
-    public static BridgePlan CalculateBridge(Vector3Int startPos, Vector3Int endPos)
+    public static BridgePlan CalculateBridge(Vector3Int startPos, Vector3Int endPos, GameSettings gameSettings)
     {
         BridgePlan plan = new BridgePlan
         {
@@ -46,12 +46,18 @@ public static class BridgeBuilder
         }
         
         // Get settings
-        BridgeSettings settings = Game.Instance.Settings.BridgeSettings;
-        int middleLength = settings.MiddleSegmentLength;
-        int fillerLength = settings.FillerSegmentLength;
+        BridgeSettings settings = gameSettings.BridgeSettings;
+        int middleLength = settings.GetSegmentLength(BridgeSegment.SegmentType.Middle);
+        int fillerLength = settings.GetSegmentLength(BridgeSegment.SegmentType.Filler);
         
         // Calculate total distance
         int totalDistance = Mathf.Abs(delta.x) + Mathf.Abs(delta.y) + Mathf.Abs(delta.z);
+        
+        // Get actual segment lengths
+        int startLength = settings.GetSegmentLength(BridgeSegment.SegmentType.Start);
+        int endLength = settings.GetSegmentLength(BridgeSegment.SegmentType.End);
+        
+        Debug.Log($"[BridgeBuilder] Building bridge: distance={totalDistance}, start={startLength}, middle={middleLength}, filler={fillerLength}, end={endLength}");
         
         // Calculate direction vector
         Vector3 direction = new Vector3(
@@ -61,18 +67,30 @@ public static class BridgeBuilder
         );
         plan.Direction = direction;
         
-        // Start segment (length 1)
+        // Calculate rotation - bridge models face along X-axis, so rotate 90 degrees
+        Quaternion baseRotation = Quaternion.LookRotation(direction);
+        Quaternion correctionRotation = Quaternion.Euler(0, -90, 0);
+        Quaternion finalRotation = baseRotation * correctionRotation;
+        
+        // Start segment
         plan.Placements.Add(new SegmentPlacement
         {
             Type = BridgeSegment.SegmentType.Start,
             GridPosition = startPos,
-            Rotation = Quaternion.LookRotation(direction)
+            Rotation = finalRotation
         });
         
-        int currentDistance = 1; // Start segment takes 1 unit
+        // Get spacing intervals (accounts for centered bounds)
+        int startSpacing = settings.GetSegmentSpacing(BridgeSegment.SegmentType.Start, direction);
+        int middleSpacing = settings.GetSegmentSpacing(BridgeSegment.SegmentType.Middle, direction);
+        int fillerSpacing = settings.GetSegmentSpacing(BridgeSegment.SegmentType.Filler, direction);
+        int endSpacing = settings.GetSegmentSpacing(BridgeSegment.SegmentType.End, direction);
+        
+        int currentDistance = startSpacing; // Start after the Start segment's extent
+        int remainingDistance = totalDistance - startSpacing; // Space left after start segment
         
         // Fill with middle segments
-        while (currentDistance + middleLength + 1 <= totalDistance) // +1 for end segment
+        while (remainingDistance >= middleSpacing + endSpacing) // Need room for middle + end spacing
         {
             Vector3Int pos = startPos + Vector3Int.RoundToInt(direction * currentDistance);
             
@@ -80,14 +98,15 @@ public static class BridgeBuilder
             {
                 Type = BridgeSegment.SegmentType.Middle,
                 GridPosition = pos,
-                Rotation = Quaternion.LookRotation(direction)
+                Rotation = finalRotation
             });
             
-            currentDistance += middleLength;
+            currentDistance += middleSpacing;
+            remainingDistance -= middleSpacing;
         }
         
         // Fill remaining gap with fillers
-        while (currentDistance + fillerLength + 1 <= totalDistance)
+        while (remainingDistance >= fillerSpacing + endSpacing) // Need room for filler + end spacing
         {
             Vector3Int pos = startPos + Vector3Int.RoundToInt(direction * currentDistance);
             
@@ -95,19 +114,27 @@ public static class BridgeBuilder
             {
                 Type = BridgeSegment.SegmentType.Filler,
                 GridPosition = pos,
-                Rotation = Quaternion.LookRotation(direction)
+                Rotation = finalRotation
             });
             
-            currentDistance += fillerLength;
+            currentDistance += fillerSpacing;
+            remainingDistance -= fillerSpacing;
         }
         
-        // End segment
+        // End segment - place at exact end position
         plan.Placements.Add(new SegmentPlacement
         {
             Type = BridgeSegment.SegmentType.End,
             GridPosition = endPos,
-            Rotation = Quaternion.LookRotation(direction)
+            Rotation = finalRotation
         });
+        
+        // Warn if there's a gap
+        int gapSize = remainingDistance - endLength;
+        if (gapSize > 0)
+        {
+            Debug.LogWarning($"[BridgeBuilder] Gap of {gapSize} cells detected. Consider adjusting segment sizes.");
+        }
         
         plan.IsValid = true;
         return plan;

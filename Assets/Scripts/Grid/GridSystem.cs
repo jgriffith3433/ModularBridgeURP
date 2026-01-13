@@ -71,6 +71,14 @@ public class GridSystem : MonoBehaviour
         return registry.CanPlaceObject(gridPosition, size, ignoreObject);
     }
     
+    /// <summary>
+    /// Check if a GridObject can be placed at the specified position using its bounds.
+    /// </summary>
+    public bool CanPlaceObject(Vector3Int gridPosition, GridObject checkObject, GridObject ignoreObject = null)
+    {
+        return registry.CanPlaceObject(gridPosition, checkObject, ignoreObject);
+    }
+    
     #endregion
     
     #region Visualization

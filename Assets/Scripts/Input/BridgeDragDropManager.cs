@@ -7,8 +7,6 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class BridgeDragDropManager : MonoBehaviour
 {
-    public static BridgeDragDropManager Instance { get; private set; }
-    
     [Header("References")]
     [SerializeField] private BridgePlacementController placementController;
     
@@ -19,30 +17,10 @@ public class BridgeDragDropManager : MonoBehaviour
     
     private void Awake()
     {
-        // Singleton pattern
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-        
-        // Find placement controller if not assigned
+        // Validate placement controller is assigned
         if (placementController == null)
         {
-            placementController = FindObjectOfType<BridgePlacementController>();
-            if (placementController == null)
-            {
-                Debug.LogError("[BridgeDragDropManager] No BridgePlacementController found in scene!");
-            }
-        }
-    }
-    
-    private void OnDestroy()
-    {
-        if (Instance == this)
-        {
-            Instance = null;
+            throw new System.Exception("[BridgeDragDropManager] BridgePlacementController not assigned!");
         }
     }
     
@@ -53,6 +31,13 @@ public class BridgeDragDropManager : MonoBehaviour
     {
         if (dragItem == null || dragItem.BridgeSegmentPrefab == null)
             return;
+        
+        // Don't interfere if placement controller is already being used (e.g., 3D drag)
+        if (placementController.IsPlacing)
+        {
+            Debug.LogWarning("[BridgeDragDropManager] Cannot start UI drag - placement controller is busy");
+            return;
+        }
         
         currentDragItem = dragItem;
         

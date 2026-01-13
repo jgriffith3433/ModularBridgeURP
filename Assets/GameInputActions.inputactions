@@ -3,44 +3,52 @@
     "maps": [
         {
             "name": "Gameplay",
+            "id": "93b72940-55d5-4442-ab18-858777ff6612",
             "actions": [
                 {
                     "name": "Point",
                     "type": "Value",
+                    "id": "17771714-2b97-41b5-b428-284829b0441b",
                     "expectedControlType": "Vector2",
-                    "interactions": "",
                     "processors": "",
-                    "bindings": [
-                        {
-                            "path": "<Mouse>/position",
-                            "interactions": "",
-                            "processors": "",
-                            "groups": "",
-                            "action": "Point",
-                            "isComposite": false,
-                            "isPartOfComposite": false
-                        }
-                    ]
+                    "interactions": "",
+                    "initialStateCheck": true
                 },
                 {
                     "name": "Click",
                     "type": "Button",
+                    "id": "51ca89f5-e0ea-4b4b-a732-458aeeceb09b",
                     "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "16640ddd-89f8-4abe-843f-e9a6a41655fc",
+                    "path": "<Mouse>/position",
                     "interactions": "",
                     "processors": "",
-                    "bindings": [
-                        {
-                            "path": "<Mouse>/leftButton",
-                            "interactions": "",
-                            "processors": "",
-                            "groups": "",
-                            "action": "Click",
-                            "isComposite": false,
-                            "isPartOfComposite": false
-                        }
-                    ]
+                    "groups": "",
+                    "action": "Point",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "af991101-1728-4d91-b64e-d5647d540b9a",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Click",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }
-    ]
+    ],
+    "controlSchemes": []
 }

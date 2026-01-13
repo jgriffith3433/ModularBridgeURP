@@ -13,6 +13,8 @@ public class BridgePlacementController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Camera mainCamera;
     [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private GridSystem gridSystem;
+    [SerializeField] private GameSettings gameSettings;
     
     [Header("Preview Settings")]
     [SerializeField] private Transform previewContainer;
@@ -20,6 +22,11 @@ public class BridgePlacementController : MonoBehaviour
     // Current placement state - now receives the instantiated object
     private BridgeSegment activeSegmentInstance;
     private bool isPlacing = false;
+    
+    // Move mode state - for dragging already-placed segments
+    private bool isDraggingExisting = false;
+    private Vector3Int originalGridPosition;
+    private Bridge originalBridge;
     
     // Preview bridge segments
     private List<GameObject> previewSegments = new List<GameObject>();
@@ -32,17 +39,21 @@ public class BridgePlacementController : MonoBehaviour
     // Input - mouse position from pointer events
     private Vector2 mousePosition;
     
+    public bool IsPlacing => isPlacing;
+    
     private void Awake()
     {
         if (mainCamera == null)
             mainCamera = Camera.main;
         
+        if (gridSystem == null)
+            throw new System.Exception("[BridgePlacementController] GridSystem not assigned!");
+        
+        if (gameSettings == null)
+            throw new System.Exception("[BridgePlacementController] GameSettings not assigned!");
+        
         if (previewContainer == null)
-        {
-            GameObject container = new GameObject("BridgePreviews");
-            previewContainer = container.transform;
-            previewContainer.SetParent(transform);
-        }
+            throw new System.Exception("[BridgePlacementController] PreviewContainer not assigned!");
     }
     
     private void Update()
@@ -79,6 +90,51 @@ public class BridgePlacementController : MonoBehaviour
     }
     
     /// <summary>
+    /// Begin moving an already-placed bridge segment.
+    /// </summary>
+    public void BeginMove(BridgeSegment existingSegment, PointerEventData eventData)
+    {
+        if (isPlacing)
+        {
+            CancelPlacement();
+        }
+        
+        if (!existingSegment.IsPlaced)
+        {
+            Debug.LogWarning("[BridgePlacementController] Cannot move segment that isn't placed");
+            return;
+        }
+        
+        // Store original state
+        originalGridPosition = existingSegment.GridPosition;
+        originalBridge = existingSegment.ParentBridge;
+        
+        // If part of a bridge, break it
+        if (originalBridge != null)
+        {
+            Debug.Log($"[BridgePlacementController] Breaking bridge to move segment");
+            Game.Instance.Bridges.BreakBridge(originalBridge, keepStartEnd: true);
+        }
+        
+        // Remove from grid (this fires OnRemoved)
+        existingSegment.Remove();
+        
+        // Set up move state
+        activeSegmentInstance = existingSegment;
+        isPlacing = true;
+        isDraggingExisting = true;
+        mousePosition = eventData.position;
+        
+        // Move segment to preview container
+        activeSegmentInstance.transform.SetParent(previewContainer);
+        
+        // Force first update
+        lastGridPosition = Vector3Int.one * int.MinValue;
+        
+        Debug.Log($"[BridgePlacementController] Started moving {activeSegmentInstance.Type} segment from {originalGridPosition}");
+    }
+    
+    /// <summary>
     /// Update placement position during drag.
     /// </summary>
     public void UpdatePlacement(PointerEventData eventData)
@@ -101,12 +157,17 @@ public class BridgePlacementController : MonoBehaviour
         UpdateDragPosition(); // Final position update
         
         // Check if we can place
-        bool canPlace = Game.Instance.Grid.CanPlaceObject(currentGridPosition, activeSegmentInstance.GridSize);
+        bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
         
         if (!canPlace)
         {
-            Debug.LogWarning("[BridgePlacementController] Cannot place - grid cells occupied");
-            CancelPlacement();
+            // For UI drag: destroy the segment
+            // For move drag: handled by CompleteMove which will snap back
+            if (!isDraggingExisting)
+            {
+                Debug.LogWarning("[BridgePlacementController] Cannot place - grid cells occupied");
+                CancelPlacement();
+            }
             return false;
         }
         
@@ -123,13 +184,17 @@ public class BridgePlacementController : MonoBehaviour
             potentialConnectionTarget = null;
             activeSegmentInstance = null;
             isPlacing = false;
+            isDraggingExisting = false;
             
             return true;
         }
         else
         {
             Debug.LogWarning("[BridgePlacementController] Placement failed");
-            CancelPlacement();
+            if (!isDraggingExisting)
+            {
+                CancelPlacement();
+            }
             return false;
         }
     }
@@ -156,6 +221,88 @@ public class BridgePlacementController : MonoBehaviour
         Debug.Log("[BridgePlacementController] Placement cancelled");
     }
     
+    /// <summary>
+    /// Complete move operation. If invalid position, snap back to original.
+    /// </summary>
+    public bool CompleteMove(PointerEventData eventData)
+    {
+        if (!isPlacing || !isDraggingExisting || activeSegmentInstance == null)
+            return false;
+        
+        mousePosition = eventData.position;
+        UpdateDragPosition(); // Final position update
+        
+        // Check if we can place at the new position
+        bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
+        
+        if (canPlace && currentGridPosition != originalGridPosition)
+        {
+            // Valid new position - place there
+            activeSegmentInstance.transform.SetParent(null);
+            
+            if (activeSegmentInstance.TryPlace(currentGridPosition))
+            {
+                Debug.Log($"[BridgePlacementController] Moved {activeSegmentInstance.Type} segment to {currentGridPosition}");
+                
+                // Clear state
+                ClearPreviewSegments();
+                potentialConnectionTarget = null;
+                activeSegmentInstance = null;
+                isPlacing = false;
+                isDraggingExisting = false;
+                originalBridge = null;
+                
+                return true;
+            }
+        }
+        
+        // Invalid position or placement failed - snap back to original position
+        Debug.LogWarning($"[BridgePlacementController] Invalid position, snapping back to {originalGridPosition}");
+        
+        activeSegmentInstance.transform.SetParent(null);
+        
+        if (activeSegmentInstance.TryPlace(originalGridPosition))
+        {
+            Debug.Log($"[BridgePlacementController] Snapped {activeSegmentInstance.Type} segment back to original position");
+        }
+        
+        // Clear state
+        ClearPreviewSegments();
+        potentialConnectionTarget = null;
+        activeSegmentInstance = null;
+        isPlacing = false;
+        isDraggingExisting = false;
+        originalBridge = null;
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Cancel move operation and snap back to original position.
+    /// </summary>
+    public void CancelMove()
+    {
+        if (!isPlacing || !isDraggingExisting)
+            return;
+        
+        Debug.Log($"[BridgePlacementController] Cancelling move, snapping back to {originalGridPosition}");
+        
+        if (activeSegmentInstance != null)
+        {
+            activeSegmentInstance.transform.SetParent(null);
+            activeSegmentInstance.TryPlace(originalGridPosition);
+        }
+        
+        ClearPreviewSegments();
+        potentialConnectionTarget = null;
+        activeSegmentInstance = null;
+        isPlacing = false;
+        isDraggingExisting = false;
+        originalBridge = null;
+        
+        Debug.Log("[BridgePlacementController] Move cancelled");
+    }
+    
     #endregion
     
     #region Placement Logic
@@ -169,7 +316,7 @@ public class BridgePlacementController : MonoBehaviour
             return;
         
         // Convert to grid position
-        Vector3Int newGridPos = Game.Instance.Grid.WorldToGrid(hit.point);
+        Vector3Int newGridPos = gridSystem.WorldToGrid(hit.point);
         
         // Only update if position changed (performance optimization)
         if (newGridPos == lastGridPosition)
@@ -184,7 +331,7 @@ public class BridgePlacementController : MonoBehaviour
     private void UpdatePreview()
     {
         // Check if we can place at this position
-        bool canPlace = Game.Instance.Grid.CanPlaceObject(currentGridPosition, activeSegmentInstance.GridSize);
+        bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
         
         // Update dragged segment position and material
         activeSegmentInstance.ShowPlacementPreview(currentGridPosition, canPlace);
@@ -218,7 +365,7 @@ public class BridgePlacementController : MonoBehaviour
         }
         
         // Get all placed bridge segments of the target type
-        var candidates = Game.Instance.Grid.Registry.GetObjectsOfType<BridgeSegment>();
+        var candidates = gridSystem.Registry.GetObjectsOfType<BridgeSegment>();
         
         foreach (var candidate in candidates)
         {
@@ -255,24 +402,24 @@ public class BridgePlacementController : MonoBehaviour
             : potentialConnectionTarget.GridPosition;
         
         // Calculate bridge plan
-        BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(startPos, endPos);
+        BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(startPos, endPos, gameSettings);
         
         if (!plan.IsValid)
             return;
         
         // Create preview segments (skip start and end as they're already visible)
-        BridgeSettings settings = Game.Instance.Settings.BridgeSettings;
+        BridgeSettings settings = gameSettings.BridgeSettings;
         
         for (int i = 1; i < plan.Placements.Count - 1; i++)
         {
             var placement = plan.Placements[i];
             
-            BridgeSegment prefab = GetPrefabForType(placement.Type);
+            BridgeSegment prefab = settings.GetPrefabForType(placement.Type);
             if (prefab == null)
                 continue;
             
             GameObject previewObj = Instantiate(prefab.gameObject, previewContainer);
-            previewObj.transform.position = Game.Instance.Grid.GridToWorld(placement.GridPosition);
+            previewObj.transform.position = gridSystem.GridToWorld(placement.GridPosition);
             previewObj.transform.rotation = placement.Rotation;
             
             // Apply preview material
@@ -296,25 +443,6 @@ public class BridgePlacementController : MonoBehaviour
             }
         }
         previewSegments.Clear();
-    }
-    
-    private BridgeSegment GetPrefabForType(BridgeSegment.SegmentType type)
-    {
-        BridgeSettings settings = Game.Instance.Settings.BridgeSettings;
-        
-        switch (type)
-        {
-            case BridgeSegment.SegmentType.Start:
-                return settings.StartPrefab;
-            case BridgeSegment.SegmentType.Middle:
-                return settings.MiddlePrefab;
-            case BridgeSegment.SegmentType.Filler:
-                return settings.FillerPrefab;
-            case BridgeSegment.SegmentType.End:
-                return settings.EndPrefab;
-            default:
-                return null;
-        }
     }
     
     #endregion

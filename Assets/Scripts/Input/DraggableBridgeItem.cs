@@ -13,6 +13,9 @@ public class DraggableBridgeItem : MonoBehaviour, IBeginDragHandler, IDragHandle
     [Tooltip("The bridge segment prefab to spawn when this UI item is dragged")]
     [SerializeField] private BridgeSegment bridgeSegmentPrefab;
     
+    [Header("Drag Drop Manager")]
+    [SerializeField] private BridgeDragDropManager dragDropManager;
+    
     [Header("Visual Feedback")]
     [Tooltip("Optional icon to display while dragging")]
     [SerializeField] private Sprite dragIcon;
@@ -37,6 +40,11 @@ public class DraggableBridgeItem : MonoBehaviour, IBeginDragHandler, IDragHandle
         {
             Debug.LogError($"[DraggableBridgeItem] No bridge segment prefab assigned to {gameObject.name}");
         }
+        
+        if (dragDropManager == null)
+        {
+            throw new System.Exception($"[DraggableBridgeItem] BridgeDragDropManager not assigned to {gameObject.name}!");
+        }
     }
     
     public void OnBeginDrag(PointerEventData eventData)
@@ -53,7 +61,7 @@ public class DraggableBridgeItem : MonoBehaviour, IBeginDragHandler, IDragHandle
         canvasGroup.blocksRaycasts = false;
         
         // Notify the drag and drop manager
-        BridgeDragDropManager.Instance?.OnBeginDragFromUI(this, eventData);
+        dragDropManager.OnBeginDragFromUI(this, eventData);
     }
     
     public void OnDrag(PointerEventData eventData)
@@ -68,7 +76,7 @@ public class DraggableBridgeItem : MonoBehaviour, IBeginDragHandler, IDragHandle
         }
         
         // Notify the drag and drop manager
-        BridgeDragDropManager.Instance?.OnDragUpdate(eventData);
+        dragDropManager.OnDragUpdate(eventData);
     }
     
     public void OnEndDrag(PointerEventData eventData)
@@ -82,6 +90,6 @@ public class DraggableBridgeItem : MonoBehaviour, IBeginDragHandler, IDragHandle
         rectTransform.anchoredPosition = originalPosition;
         
         // Notify the drag and drop manager
-        BridgeDragDropManager.Instance?.OnEndDrag(eventData);
+        dragDropManager.OnEndDrag(eventData);
     }
 }

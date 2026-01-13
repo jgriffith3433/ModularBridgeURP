@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Central game context that holds references to all major systems.
-/// Follows standard Unity singleton pattern for global access.
+/// Singleton pattern - this is the only class that should use singleton.
 /// </summary>
 public class Game : MonoBehaviour
 {
@@ -25,7 +25,7 @@ public class Game : MonoBehaviour
     
     private void Awake()
     {
-        // Standard singleton setup
+        // Singleton setup
         if (instance != null && instance != this)
         {
             Destroy(gameObject);
@@ -33,7 +33,6 @@ public class Game : MonoBehaviour
         }
         
         instance = this;
-        DontDestroyOnLoad(gameObject);
         
         // Validate all systems are assigned
         ValidateSystems();
@@ -42,16 +41,16 @@ public class Game : MonoBehaviour
     private void ValidateSystems()
     {
         if (gameSettings == null)
-            Debug.LogError("[Game] GameSettings not assigned!");
+            throw new System.Exception("[Game] GameSettings not assigned!");
         
         if (gridSystem == null)
-            Debug.LogError("[Game] GridSystem not assigned!");
+            throw new System.Exception("[Game] GridSystem not assigned!");
         
         if (bridgeSystem == null)
-            Debug.LogError("[Game] BridgeSystem not assigned!");
+            throw new System.Exception("[Game] BridgeSystem not assigned!");
         
         if (inputManager == null)
-            Debug.LogError("[Game] InputManager not assigned!");
+            throw new System.Exception("[Game] InputManager not assigned!");
     }
     
     private void OnDestroy()

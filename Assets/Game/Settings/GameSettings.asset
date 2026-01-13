@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f90044ee4af31a4e8256da9919c67c8, type: 3}
   m_Name: GameSettings
   m_EditorClassIdentifier: 
-  gridSettings: {fileID: 0}
-  bridgeSettings: {fileID: 0}
+  gridSettings: {fileID: 11400000, guid: 2b61fe6c1139b3943bc0507284921c25, type: 2}
+  bridgeSettings: {fileID: 11400000, guid: 01c6b64d58023954fa30d0dc3052a657, type: 2}

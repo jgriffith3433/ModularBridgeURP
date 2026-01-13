@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34b2838757fde7945bc4a27e15455d37, type: 3}
   m_Name: BridgeSettings
   m_EditorClassIdentifier: 
-  startPrefab: {fileID: 0}
-  endPrefab: {fileID: 0}
-  middlePrefab: {fileID: 0}
-  fillerPrefab: {fileID: 0}
+  startPrefab: {fileID: 8083486522592347406, guid: a1bdc32de06bfce4da059a1afa991db4, type: 3}
+  endPrefab: {fileID: 6305080990323162955, guid: 2ea201a9b36c7b346a478f035f4b11c5, type: 3}
+  middlePrefab: {fileID: 6216718833969473189, guid: 34d721a479d3f194498c2c81180fc6ef, type: 3}
+  fillerPrefab: {fileID: 2278498813596297695, guid: 719c93d88ac243240a9b5e7dceac83a8, type: 3}
   middleSegmentLength: 5
   fillerSegmentLength: 1

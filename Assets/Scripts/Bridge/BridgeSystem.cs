@@ -9,6 +9,9 @@ public class BridgeSystem : MonoBehaviour
     [Header("Bridge Container")]
     [SerializeField] private Transform bridgeContainer;
     
+    [Header("Dependencies")]
+    [SerializeField] private GameSettings gameSettings;
+    
     // Active bridges
     private List<Bridge> activeBridges = new List<Bridge>();
     
@@ -17,12 +20,11 @@ public class BridgeSystem : MonoBehaviour
     
     private void Awake()
     {
+        if (gameSettings == null)
+            throw new System.Exception("[BridgeSystem] GameSettings not assigned!");
+        
         if (bridgeContainer == null)
-        {
-            GameObject container = new GameObject("Bridges");
-            bridgeContainer = container.transform;
-            bridgeContainer.SetParent(transform);
-        }
+            throw new System.Exception("[BridgeSystem] BridgeContainer not assigned!");
     }
     
     /// <summary>
@@ -124,7 +126,8 @@ public class BridgeSystem : MonoBehaviour
         // Calculate bridge plan
         BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(
             start.GridPosition,
-            end.GridPosition
+            end.GridPosition,
+            gameSettings
         );
         
         if (!plan.IsValid)
@@ -137,13 +140,13 @@ public class BridgeSystem : MonoBehaviour
         Bridge bridge = new Bridge(start, end);
         
         // Instantiate intermediate segments
-        BridgeSettings settings = Game.Instance.Settings.BridgeSettings;
+        BridgeSettings settings = gameSettings.BridgeSettings;
         
         for (int i = 1; i < plan.Placements.Count - 1; i++) // Skip first (start) and last (end)
         {
             var placement = plan.Placements[i];
             
-            BridgeSegment prefab = GetPrefabForType(placement.Type);
+            BridgeSegment prefab = settings.GetPrefabForType(placement.Type);
             if (prefab == null)
                 continue;
             
@@ -183,26 +186,47 @@ public class BridgeSystem : MonoBehaviour
     }
     
     /// <summary>
-    /// Destroy a bridge and all its segments.
+    /// Break a bridge apart, destroying intermediate segments.
     /// </summary>
-    public void DestroyBridge(Bridge bridge)
+    /// <param name="bridge">The bridge to break</param>
+    /// <param name="keepStartEnd">If true, Start/End segments are kept as standalone. If false, all segments are destroyed.</param>
+    public void BreakBridge(Bridge bridge, bool keepStartEnd = true)
     {
         if (!activeBridges.Contains(bridge))
             return;
         
         activeBridges.Remove(bridge);
         
-        // Return start/end to standalone if they still exist
-        if (bridge.StartSegment != null)
+        // Handle Start/End segments
+        if (keepStartEnd)
         {
-            standaloneSegments.Add(bridge.StartSegment);
-            bridge.StartSegment.ParentBridge = null;
+            // Return start/end to standalone if they still exist
+            if (bridge.StartSegment != null)
+            {
+                standaloneSegments.Add(bridge.StartSegment);
+                bridge.StartSegment.ParentBridge = null;
+            }
+            
+            if (bridge.EndSegment != null)
+            {
+                standaloneSegments.Add(bridge.EndSegment);
+                bridge.EndSegment.ParentBridge = null;
+            }
         }
-        
-        if (bridge.EndSegment != null)
+        else
         {
-            standaloneSegments.Add(bridge.EndSegment);
-            bridge.EndSegment.ParentBridge = null;
+            // Destroy start/end segments as well
+            if (bridge.StartSegment != null)
+            {
+                bridge.StartSegment.Remove();
+                Destroy(bridge.StartSegment.gameObject);
+            }
+            
+            if (bridge.EndSegment != null)
+            {
+                bridge.EndSegment.Remove();
+                Destroy(bridge.EndSegment.gameObject);
+            }
         }
         
         // Destroy intermediate segments
@@ -223,25 +247,25 @@ public class BridgeSystem : MonoBehaviour
                 Destroy(segment.gameObject);
             }
         }
+        
+        Debug.Log($"[BridgeSystem] Broke bridge (keepStartEnd: {keepStartEnd})");
     }
     
-    private BridgeSegment GetPrefabForType(BridgeSegment.SegmentType type)
+    /// <summary>
+    /// Get the bridge that contains the specified segment.
+    /// </summary>
+    public Bridge GetBridgeForSegment(BridgeSegment segment)
     {
-        BridgeSettings settings = Game.Instance.Settings.BridgeSettings;
-        
-        switch (type)
-        {
-            case BridgeSegment.SegmentType.Start:
-                return settings.StartPrefab;
-            case BridgeSegment.SegmentType.Middle:
-                return settings.MiddlePrefab;
-            case BridgeSegment.SegmentType.Filler:
-                return settings.FillerPrefab;
-            case BridgeSegment.SegmentType.End:
-                return settings.EndPrefab;
-            default:
-                return null;
-        }
+        return segment?.ParentBridge;
+    }
+    
+    /// <summary>
+    /// Destroy a bridge and all its segments.
+    /// </summary>
+    public void DestroyBridge(Bridge bridge)
+    {
+        // Use BreakBridge with keepStartEnd = true, so Start/End become standalone
+        BreakBridge(bridge, keepStartEnd: true);
     }
     
     public IReadOnlyList<Bridge> GetActiveBridges()
