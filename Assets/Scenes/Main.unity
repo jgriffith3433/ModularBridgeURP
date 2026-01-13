@@ -627,6 +627,7 @@ MonoBehaviour:
   normalColor: {r: 0.7647059, g: 0.7647059, b: 0.7647059, a: 0.8}
   draggingColor: {r: 0.7882353, g: 0.7882353, b: 0.7882353, a: 0.84705883}
   disabledColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+  canvasGroup: {fileID: 388736387}
 --- !u!1 &398862871
 GameObject:
   m_ObjectHideFlags: 0
@@ -754,6 +755,7 @@ MonoBehaviour:
   normalColor: {r: 0.7660377, g: 0.7660377, b: 0.7660377, a: 0.8}
   draggingColor: {r: 0.78867924, g: 0.78867924, b: 0.78867924, a: 0.84705883}
   disabledColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
+  canvasGroup: {fileID: 398862874}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0

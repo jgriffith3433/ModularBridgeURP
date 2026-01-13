@@ -20,8 +20,7 @@ namespace ModularBridge.Input
         [SerializeField] private Color normalColor = Color.white;
         [SerializeField] private Color draggingColor = new Color(0.7f, 0.7f, 0.7f, 0.8f);
         [SerializeField] private Color disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
-        
-        private CanvasGroup canvasGroup;
+        [SerializeField] private CanvasGroup canvasGroup;
         private bool isEnabled = true;
         
         public GridObject GridObjectPrefab => gridObjectPrefab;
@@ -29,15 +28,19 @@ namespace ModularBridge.Input
         
         private void Awake()
         {
-            canvasGroup = GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+            {
+                throw new System.Exception($"[DraggableGridItem] CanvasGroup not assigned to {gameObject.name}!");
+            }
             
             if (iconImage == null)
             {
-                iconImage = GetComponent<Image>();
+                throw new System.Exception($"[DraggableGridItem] Icon Image not assigned to {gameObject.name}!");
             }
             
             if (gridObjectPrefab == null)
             {
+                throw new System.Exception($"[DraggableGridItem] GridObjectPrefab not assigned to {gameObject.name}!");
             }
             
             if (dragDropManager == null)
