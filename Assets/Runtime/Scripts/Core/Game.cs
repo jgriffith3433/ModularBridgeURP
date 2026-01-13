@@ -17,11 +17,13 @@ namespace ModularBridge.Core
         [SerializeField] private GridSystem gridSystem;
         [SerializeField] private BridgeSystem bridgeSystem;
         [SerializeField] private InputManager inputManager;
+        [SerializeField] private InventorySystem inventorySystem;
         
         public GameSettings Settings => gameSettings;
         public GridSystem Grid => gridSystem;
         public BridgeSystem Bridges => bridgeSystem;
         public InputManager Input => inputManager;
+        public InventorySystem Inventory => inventorySystem;
         
         private void Awake()
         {
@@ -49,6 +51,9 @@ namespace ModularBridge.Core
             
             if (inputManager == null)
                 throw new System.Exception("[Game] InputManager not assigned!");
+            
+            if (inventorySystem == null)
+                throw new System.Exception("[Game] InventorySystem not assigned!");
         }
         
         private void OnDestroy()

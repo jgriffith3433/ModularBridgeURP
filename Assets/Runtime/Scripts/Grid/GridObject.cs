@@ -3,9 +3,11 @@ using ModularBridge.Core;
 
 namespace ModularBridge.Grid
 {
-    [RequireComponent(typeof(Renderer))]
     public class GridObject : MonoBehaviour
     {
+        [Header("Inventory")]
+        [SerializeField] private InventoryItemDefinition inventoryItemDefinition;
+        
         [Header("Grid Properties")]
         [Tooltip("Minimum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
         [SerializeField] private Vector3Int gridMin = Vector3Int.zero;
@@ -32,6 +34,7 @@ namespace ModularBridge.Grid
         public Vector3Int GridSize => gridMax - gridMin + Vector3Int.one;
         public Vector3Int GridPosition => currentGridPosition;
         public bool IsPlaced => isPlaced;
+        public InventoryItemDefinition InventoryItem => inventoryItemDefinition;
         
         protected virtual void Awake()
         {

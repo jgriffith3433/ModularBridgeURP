@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4474505444741462644
+--- !u!1 &1392559223107130317
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,11 +8,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5629186288251857051}
-  - component: {fileID: 5094735078461582903}
-  - component: {fileID: 3013903292887054338}
-  - component: {fileID: 8083486522592347406}
-  - component: {fileID: 8248601344586783217}
+  - component: {fileID: 8138690542648287633}
+  - component: {fileID: 167468251536387072}
+  - component: {fileID: 2888495752198024815}
+  - component: {fileID: 3379210605828329985}
   m_Layer: 7
   m_Name: Bridge_Start
   m_TagString: Untagged
@@ -20,36 +19,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5629186288251857051
+--- !u!4 &8138690542648287633
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4474505444741462644}
+  m_GameObject: {fileID: 1392559223107130317}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15.55, y: 4.0060344, z: 3.1574507}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 4, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 5629186288251857051}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5094735078461582903
+--- !u!33 &167468251536387072
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4474505444741462644}
+  m_GameObject: {fileID: 1392559223107130317}
   m_Mesh: {fileID: 2649131733537110833, guid: 75821893e567ca84fb4270b4b7f47e8d, type: 3}
---- !u!23 &3013903292887054338
+--- !u!23 &2888495752198024815
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4474505444741462644}
+  m_GameObject: {fileID: 1392559223107130317}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -88,32 +87,13 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8083486522592347406
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4474505444741462644}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9a7516e12464d841a0edc35c694149a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gridMin: {x: -3, y: 0, z: -1}
-  gridMax: {x: 3, y: 0, z: 1}
-  gridSystem: {fileID: 0}
-  gameSettings: {fileID: 11400000, guid: eac914847efaa444fa30efeb8e851b1e, type: 2}
-  validPlacementMaterial: {fileID: 2100000, guid: ebe8c547fd4b5244a9bb42e8cf53727a, type: 2}
-  invalidPlacementMaterial: {fileID: 2100000, guid: 557e8a57d9241d54eae6396663f364d6, type: 2}
-  segmentType: 0
---- !u!65 &8248601344586783217
+--- !u!65 &3379210605828329985
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4474505444741462644}
+  m_GameObject: {fileID: 1392559223107130317}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -128,3 +108,56 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 7.862564, y: 11.502209, z: 2.7034411}
   m_Center: {x: -0.00000035762787, y: 1.7450702, z: 0}
+--- !u!1 &4474505444741462644
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5629186288251857051}
+  - component: {fileID: 8083486522592347406}
+  m_Layer: 7
+  m_Name: Bridge_Start
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5629186288251857051
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4474505444741462644}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 15.55, y: 4.0060344, z: 3.1574507}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8138690542648287633}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8083486522592347406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4474505444741462644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9a7516e12464d841a0edc35c694149a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  inventoryItemDefinition: {fileID: 11400000, guid: d9b3a55628d71494abd6e33bd3e81dd4, type: 2}
+  gridMin: {x: -3, y: 0, z: -1}
+  gridMax: {x: 3, y: 0, z: 1}
+  gridSystem: {fileID: 0}
+  gameSettings: {fileID: 11400000, guid: eac914847efaa444fa30efeb8e851b1e, type: 2}
+  validPlacementMaterial: {fileID: 2100000, guid: ebe8c547fd4b5244a9bb42e8cf53727a, type: 2}
+  invalidPlacementMaterial: {fileID: 2100000, guid: 557e8a57d9241d54eae6396663f364d6, type: 2}
+  segmentType: 0

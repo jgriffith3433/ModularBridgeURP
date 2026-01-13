@@ -113,6 +113,20 @@ namespace ModularBridge.Input
             if (selectedSegment == null || !isDragging)
                 return;
             
+            if (InventoryDropZone.IsOverDropZone)
+            {
+                var dropZone = InventoryDropZone.Current;
+                if (dropZone != null && dropZone.TryReturnItem(selectedSegment))
+                {
+                    selectedSegment.Remove();
+                    Destroy(selectedSegment.gameObject);
+                    selectedSegment = null;
+                    isDragging = false;
+                    placementController.CancelPlacement();
+                    return;
+                }
+            }
+            
             var eventData = new PointerEventData(EventSystem.current)
             {
                 position = currentMousePosition

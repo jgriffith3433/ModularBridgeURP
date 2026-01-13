@@ -252,6 +252,23 @@ namespace ModularBridge.Bridge
         
         private void UpdateDragPosition()
         {
+            if (Input.InventoryDropZone.IsOverDropZone)
+            {
+                if (activeSegmentInstance != null)
+                {
+                    activeSegmentInstance.gameObject.SetActive(false);
+                }
+                ClearPreviewSegments();
+                return;
+            }
+            else
+            {
+                if (activeSegmentInstance != null)
+                {
+                    activeSegmentInstance.gameObject.SetActive(true);
+                }
+            }
+            
             var ray = mainCamera.ScreenPointToRay(mousePosition);
             
             if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, groundLayer))
@@ -312,7 +329,20 @@ namespace ModularBridge.Bridge
                 var sameX = candidatePos.x == currentGridPosition.x;
                 var sameZ = candidatePos.z == currentGridPosition.z;
                 
-                if (sameX || sameZ)
+                if (!sameX && !sameZ)
+                    continue;
+                
+                if (sameX && candidatePos.z == currentGridPosition.z)
+                    continue;
+                
+                if (sameZ && candidatePos.x == currentGridPosition.x)
+                    continue;
+                
+                var delta = candidatePos - currentGridPosition;
+                var isStartBeforeEnd = (activeSegmentInstance.Type == BridgeSegment.SegmentType.Start && (delta.x < 0 || delta.z < 0)) ||
+                                       (activeSegmentInstance.Type == BridgeSegment.SegmentType.End && (delta.x > 0 || delta.z > 0));
+                
+                if (isStartBeforeEnd)
                 {
                     return candidate;
                 }

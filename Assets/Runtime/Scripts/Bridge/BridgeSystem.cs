@@ -123,11 +123,11 @@ namespace ModularBridge.Bridge
             {
                 var placement = plan.Placements[i];
                 
-                BridgeSegment prefab = settings.GetPrefabForType(placement.Type);
+                var prefab = settings.GetPrefabForType(placement.Type);
                 if (prefab == null)
                     continue;
                 
-                BridgeSegment segment = Instantiate(prefab, bridgeContainer);
+                var segment = Instantiate(prefab, bridgeContainer);
                 segment.transform.rotation = placement.Rotation;
                 
                 if (segment.TryPlace(placement.GridPosition))
