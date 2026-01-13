@@ -5,10 +5,6 @@ using ModularBridge.Input;
 
 namespace ModularBridge.Core
 {
-    /// <summary>
-    /// Central game context that holds references to all major systems.
-    /// Singleton pattern - this is the only class that should use singleton.
-    /// </summary>
     public class Game : MonoBehaviour
     {
         private static Game instance;
@@ -22,7 +18,6 @@ namespace ModularBridge.Core
         [SerializeField] private BridgeSystem bridgeSystem;
         [SerializeField] private InputManager inputManager;
         
-        // Public accessors for systems
         public GameSettings Settings => gameSettings;
         public GridSystem Grid => gridSystem;
         public BridgeSystem Bridges => bridgeSystem;
@@ -30,7 +25,6 @@ namespace ModularBridge.Core
         
         private void Awake()
         {
-            // Singleton setup
             if (instance != null && instance != this)
             {
                 Destroy(gameObject);
@@ -39,7 +33,6 @@ namespace ModularBridge.Core
             
             instance = this;
             
-            // Validate all systems are assigned
             ValidateSystems();
         }
         

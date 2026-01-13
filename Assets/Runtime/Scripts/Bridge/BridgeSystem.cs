@@ -4,9 +4,6 @@ using ModularBridge.Core;
 
 namespace ModularBridge.Bridge
 {
-    /// <summary>
-    /// Manages all bridges in the game: creation, tracking, and lifecycle.
-    /// </summary>
     public class BridgeSystem : MonoBehaviour
     {
         [Header("Bridge Container")]
@@ -15,10 +12,7 @@ namespace ModularBridge.Bridge
         [Header("Dependencies")]
         [SerializeField] private GameSettings gameSettings;
         
-        // Active bridges
         private List<Bridge> activeBridges = new List<Bridge>();
-        
-        // Standalone segments (not part of a bridge yet)
         private HashSet<BridgeSegment> standaloneSegments = new HashSet<BridgeSegment>();
         
         private void Awake()
@@ -30,12 +24,8 @@ namespace ModularBridge.Bridge
                 throw new System.Exception("[BridgeSystem] BridgeContainer not assigned!");
         }
         
-        /// <summary>
-        /// Called when a bridge segment is placed on the grid.
-        /// </summary>
         public void OnSegmentPlaced(BridgeSegment segment)
         {
-            // If it's a start or end piece, check for potential connections
             if (segment.Type == BridgeSegment.SegmentType.Start ||
                 segment.Type == BridgeSegment.SegmentType.End)
             {
@@ -44,27 +34,19 @@ namespace ModularBridge.Bridge
             }
         }
         
-        /// <summary>
-        /// Called when a bridge segment is removed from the grid.
-        /// </summary>
         public void OnSegmentRemoved(BridgeSegment segment)
         {
             standaloneSegments.Remove(segment);
             
-            // If this segment was part of a bridge, destroy the entire bridge
             if (segment.ParentBridge != null)
             {
                 DestroyBridge(segment.ParentBridge);
             }
         }
         
-        /// <summary>
-        /// Try to automatically connect a newly placed segment to a compatible segment.
-        /// </summary>
         private void TryAutoConnect(BridgeSegment newSegment)
         {
-            // Find a compatible segment on the same axis
-            BridgeSegment targetSegment = FindConnectableSegment(newSegment);
+            var targetSegment = FindConnectableSegment(newSegment);
             
             if (targetSegment != null)
             {
@@ -72,13 +54,10 @@ namespace ModularBridge.Bridge
             }
         }
         
-        /// <summary>
-        /// Find a segment that can connect to the given segment.
-        /// </summary>
         private BridgeSegment FindConnectableSegment(BridgeSegment segment)
         {
-            Vector3Int segmentPos = segment.GridPosition;
-            BridgeSegment.SegmentType lookingFor = BridgeSegment.SegmentType.End;
+            var segmentPos = segment.GridPosition;
+            var lookingFor = BridgeSegment.SegmentType.End;
             
             if (segment.Type == BridgeSegment.SegmentType.End)
             {
@@ -86,10 +65,9 @@ namespace ModularBridge.Bridge
             }
             else if (segment.Type != BridgeSegment.SegmentType.Start)
             {
-                return null; // Only Start and End can initiate connections
+                return null;
             }
             
-            // Search through standalone segments
             foreach (var candidate in standaloneSegments)
             {
                 if (candidate == segment)
@@ -98,11 +76,10 @@ namespace ModularBridge.Bridge
                 if (candidate.Type != lookingFor)
                     continue;
                 
-                Vector3Int candidatePos = candidate.GridPosition;
+                var candidatePos = candidate.GridPosition;
                 
-                // Check if on same axis
-                bool sameX = candidatePos.x == segmentPos.x;
-                bool sameZ = candidatePos.z == segmentPos.z;
+                var sameX = candidatePos.x == segmentPos.x;
+                var sameZ = candidatePos.z == segmentPos.z;
                 
                 if (sameX || sameZ)
                 {
@@ -113,12 +90,8 @@ namespace ModularBridge.Bridge
             return null;
         }
         
-        /// <summary>
-        /// Create a complete bridge between two segments.
-        /// </summary>
         public Bridge CreateBridge(BridgeSegment start, BridgeSegment end)
         {
-            // Ensure proper start/end order
             if (start.Type == BridgeSegment.SegmentType.End)
             {
                 var temp = start;
@@ -126,12 +99,10 @@ namespace ModularBridge.Bridge
                 end = temp;
             }
             
-            // Remove start/end from standalone list IMMEDIATELY to prevent reuse
             standaloneSegments.Remove(start);
             standaloneSegments.Remove(end);
             
-            // Calculate bridge plan
-            BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(
+            var plan = BridgeBuilder.CalculateBridge(
                 start.GridPosition,
                 end.GridPosition,
                 gameSettings
@@ -139,19 +110,16 @@ namespace ModularBridge.Bridge
             
             if (!plan.IsValid)
             {
-                // Bridge plan failed - return segments to standalone
                 standaloneSegments.Add(start);
                 standaloneSegments.Add(end);
                 return null;
             }
             
-            // Create bridge object
-            Bridge bridge = new Bridge(start, end);
+            var bridge = new Bridge(start, end);
             
-            // Instantiate intermediate segments
-            BridgeSettings settings = gameSettings.BridgeSettings;
+            var settings = gameSettings.BridgeSettings;
             
-            for (int i = 1; i < plan.Placements.Count - 1; i++) // Skip first (start) and last (end)
+            for (int i = 1; i < plan.Placements.Count - 1; i++)
             {
                 var placement = plan.Placements[i];
                 
@@ -175,28 +143,20 @@ namespace ModularBridge.Bridge
                 }
                 else
                 {
-                    // Placement failed - cleanup and abort
                     Destroy(segment.gameObject);
                     bridge.Destroy();
                     
-                    // Return segments to standalone since bridge creation failed
                     standaloneSegments.Add(start);
                     standaloneSegments.Add(end);
                     return null;
                 }
             }
             
-            // Add to active bridges (start/end already removed from standalone above)
             activeBridges.Add(bridge);
             
             return bridge;
         }
         
-        /// <summary>
-        /// Break a bridge apart, destroying intermediate segments.
-        /// </summary>
-        /// <param name="bridge">The bridge to break</param>
-        /// <param name="keepStartEnd">If true, Start/End segments are kept as standalone. If false, all segments are destroyed.</param>
         public void BreakBridge(Bridge bridge, bool keepStartEnd = true)
         {
             if (!activeBridges.Contains(bridge))
@@ -204,10 +164,8 @@ namespace ModularBridge.Bridge
             
             activeBridges.Remove(bridge);
             
-            // Handle Start/End segments
             if (keepStartEnd)
             {
-                // Return start/end to standalone if they still exist
                 if (bridge.StartSegment != null)
                 {
                     standaloneSegments.Add(bridge.StartSegment);
@@ -222,7 +180,6 @@ namespace ModularBridge.Bridge
             }
             else
             {
-                // Destroy start/end segments as well
                 if (bridge.StartSegment != null)
                 {
                     bridge.StartSegment.Remove();
@@ -256,20 +213,13 @@ namespace ModularBridge.Bridge
             }
         }
         
-        /// <summary>
-        /// Get the bridge that contains the specified segment.
-        /// </summary>
         public Bridge GetBridgeForSegment(BridgeSegment segment)
         {
             return segment?.ParentBridge;
         }
         
-        /// <summary>
-        /// Destroy a bridge and all its segments.
-        /// </summary>
         public void DestroyBridge(Bridge bridge)
         {
-            // Use BreakBridge with keepStartEnd = true, so Start/End become standalone
             BreakBridge(bridge, keepStartEnd: true);
         }
         

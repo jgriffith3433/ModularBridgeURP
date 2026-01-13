@@ -7,11 +7,6 @@ using ModularBridge.Grid;
 
 namespace ModularBridge.Bridge
 {
-    /// <summary>
-    /// Handles runtime placement of bridge segments with live preview and grid snapping.
-    /// Now works with the drag and drop UI system - only activates when a 3D object
-    /// is instantiated from a UI drag operation.
-    /// </summary>
     public class BridgePlacementController : MonoBehaviour
     {
         [Header("References")]
@@ -19,28 +14,24 @@ namespace ModularBridge.Bridge
         [SerializeField] private LayerMask groundLayer;
         [SerializeField] private GridSystem gridSystem;
         [SerializeField] private GameSettings gameSettings;
+        [SerializeField] private Input.InputManager inputManager;
         
         [Header("Preview Settings")]
         [SerializeField] private Transform previewContainer;
         
-        // Current placement state - now receives the instantiated object
         private BridgeSegment activeSegmentInstance;
         private bool isPlacing = false;
         
-        // Move mode state - for dragging already-placed segments
         private bool isDraggingExisting = false;
         private Vector3Int originalGridPosition;
         private Bridge originalBridge;
         
-        // Preview bridge segments
         private List<GameObject> previewSegments = new List<GameObject>();
         private BridgeSegment potentialConnectionTarget;
         
-        // Grid position tracking
         private Vector3Int currentGridPosition;
         private Vector3Int lastGridPosition;
         
-        // Input - mouse position from pointer events
         private Vector2 mousePosition;
         
         public bool IsPlacing => isPlacing;
@@ -58,21 +49,36 @@ namespace ModularBridge.Bridge
             
             if (previewContainer == null)
                 throw new System.Exception("[BridgePlacementController] PreviewContainer not assigned!");
+            
+            if (inputManager == null)
+                throw new System.Exception("[BridgePlacementController] InputManager not assigned!");
         }
         
-        private void Update()
+        private void OnEnable()
+        {
+            if (inputManager != null && inputManager.InputActions != null)
+            {
+                inputManager.InputActions.Gameplay.Point.performed += OnPointerMove;
+            }
+        }
+        
+        private void OnDisable()
+        {
+            if (inputManager != null && inputManager.InputActions != null)
+            {
+                inputManager.InputActions.Gameplay.Point.performed -= OnPointerMove;
+            }
+        }
+        
+        private void OnPointerMove(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
             if (!isPlacing || activeSegmentInstance == null)
                 return;
             
+            mousePosition = context.ReadValue<Vector2>();
             UpdateDragPosition();
         }
         
-        #region Public API - Called by BridgeDragDropManager
-        
-        /// <summary>
-        /// Begin placement with an already instantiated bridge segment from UI drag.
-        /// </summary>
         public void BeginPlacement(BridgeSegment instantiatedSegment, PointerEventData eventData)
         {
             if (isPlacing)
@@ -84,16 +90,11 @@ namespace ModularBridge.Bridge
             isPlacing = true;
             mousePosition = eventData.position;
             
-            // Move segment to preview container
             activeSegmentInstance.transform.SetParent(previewContainer);
             
-            // Force first update
             lastGridPosition = Vector3Int.one * int.MinValue;
         }
         
-        /// <summary>
-        /// Begin moving an already-placed bridge segment.
-        /// </summary>
         public void BeginMove(BridgeSegment existingSegment, PointerEventData eventData)
         {
             if (isPlacing)
@@ -104,35 +105,26 @@ namespace ModularBridge.Bridge
             if (!existingSegment.IsPlaced)
                 return;
             
-            // Store original state
             originalGridPosition = existingSegment.GridPosition;
             originalBridge = existingSegment.ParentBridge;
             
-            // If part of a bridge, break it
             if (originalBridge != null)
             {
                 Game.Instance.Bridges.BreakBridge(originalBridge, keepStartEnd: true);
             }
             
-            // Remove from grid (this fires OnRemoved)
             existingSegment.Remove();
             
-            // Set up move state
             activeSegmentInstance = existingSegment;
             isPlacing = true;
             isDraggingExisting = true;
             mousePosition = eventData.position;
             
-            // Move segment to preview container
             activeSegmentInstance.transform.SetParent(previewContainer);
             
-            // Force first update
             lastGridPosition = Vector3Int.one * int.MinValue;
         }
         
-        /// <summary>
-        /// Update placement position during drag.
-        /// </summary>
         public void UpdatePlacement(PointerEventData eventData)
         {
             if (!isPlacing)
@@ -141,24 +133,18 @@ namespace ModularBridge.Bridge
             mousePosition = eventData.position;
         }
         
-        /// <summary>
-        /// Try to complete the placement. Returns true if successful.
-        /// </summary>
         public bool CompletePlacement(PointerEventData eventData)
         {
             if (!isPlacing || activeSegmentInstance == null)
                 return false;
             
             mousePosition = eventData.position;
-            UpdateDragPosition(); // Final position update
+            UpdateDragPosition();
             
-            // Check if we can place
-            bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
+            var canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
             
             if (!canPlace)
             {
-                // For UI drag: destroy the segment
-                // For move drag: handled by CompleteMove which will snap back
                 if (!isDraggingExisting)
                 {
                     CancelPlacement();
@@ -166,13 +152,10 @@ namespace ModularBridge.Bridge
                 return false;
             }
             
-            // Move out of preview container
             activeSegmentInstance.transform.SetParent(null);
             
-            // Try to place the segment
             if (activeSegmentInstance.TryPlace(currentGridPosition))
             {
-                // Clear preview and reset state (but don't destroy the placed segment)
                 ClearPreviewSegments();
                 potentialConnectionTarget = null;
                 activeSegmentInstance = null;
@@ -191,9 +174,6 @@ namespace ModularBridge.Bridge
             }
         }
         
-        /// <summary>
-        /// Cancel current placement and destroy the active segment.
-        /// </summary>
         public void CancelPlacement()
         {
             if (!isPlacing)
@@ -211,28 +191,22 @@ namespace ModularBridge.Bridge
             potentialConnectionTarget = null;
         }
         
-        /// <summary>
-        /// Complete move operation. If invalid position, snap back to original.
-        /// </summary>
         public bool CompleteMove(PointerEventData eventData)
         {
             if (!isPlacing || !isDraggingExisting || activeSegmentInstance == null)
                 return false;
             
             mousePosition = eventData.position;
-            UpdateDragPosition(); // Final position update
+            UpdateDragPosition();
             
-            // Check if we can place at the new position
-            bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
+            var canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
             
             if (canPlace && currentGridPosition != originalGridPosition)
             {
-                // Valid new position - place there
                 activeSegmentInstance.transform.SetParent(null);
                 
                 if (activeSegmentInstance.TryPlace(currentGridPosition))
                 {
-                    // Clear state
                     ClearPreviewSegments();
                     potentialConnectionTarget = null;
                     activeSegmentInstance = null;
@@ -243,8 +217,6 @@ namespace ModularBridge.Bridge
                     return true;
                 }
             }
-            
-            // Invalid position or placement failed - snap back to original position
             activeSegmentInstance.transform.SetParent(null);
             activeSegmentInstance.TryPlace(originalGridPosition);
             
@@ -259,9 +231,6 @@ namespace ModularBridge.Bridge
             return false;
         }
         
-        /// <summary>
-        /// Cancel move operation and snap back to original position.
-        /// </summary>
         public void CancelMove()
         {
             if (!isPlacing || !isDraggingExisting)
@@ -281,22 +250,15 @@ namespace ModularBridge.Bridge
             originalBridge = null;
         }
         
-        #endregion
-        
-        #region Placement Logic
-        
         private void UpdateDragPosition()
         {
-            // Raycast from mouse to ground
-            Ray ray = mainCamera.ScreenPointToRay(mousePosition);
+            var ray = mainCamera.ScreenPointToRay(mousePosition);
             
-            if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
+            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, groundLayer))
                 return;
             
-            // Convert to grid position
-            Vector3Int newGridPos = gridSystem.WorldToGrid(hit.point);
+            var newGridPos = gridSystem.WorldToGrid(hit.point);
             
-            // Only update if position changed (performance optimization)
             if (newGridPos == lastGridPosition)
                 return;
             
@@ -308,16 +270,12 @@ namespace ModularBridge.Bridge
         
         private void UpdatePreview()
         {
-            // Check if we can place at this position
-            bool canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
+            var canPlace = gridSystem.CanPlaceObject(currentGridPosition, activeSegmentInstance);
             
-            // Update dragged segment position and material
             activeSegmentInstance.ShowPlacementPreview(currentGridPosition, canPlace);
             
-            // Clear old preview segments
             ClearPreviewSegments();
             
-            // Check for potential connections
             potentialConnectionTarget = FindPotentialConnection();
             
             if (potentialConnectionTarget != null && canPlace)
@@ -328,21 +286,17 @@ namespace ModularBridge.Bridge
         
         private BridgeSegment FindPotentialConnection()
         {
-            // Only Start and End pieces can initiate connections
             if (activeSegmentInstance.Type != BridgeSegment.SegmentType.Start &&
                 activeSegmentInstance.Type != BridgeSegment.SegmentType.End)
             {
                 return null;
             }
             
-            // Determine what we're looking for
-            BridgeSegment.SegmentType lookingFor = BridgeSegment.SegmentType.End;
+            var lookingFor = BridgeSegment.SegmentType.End;
             if (activeSegmentInstance.Type == BridgeSegment.SegmentType.End)
             {
                 lookingFor = BridgeSegment.SegmentType.Start;
             }
-            
-            // Get all placed bridge segments of the target type
             var candidates = gridSystem.Registry.GetObjectsOfType<BridgeSegment>();
             
             foreach (var candidate in candidates)
@@ -353,11 +307,10 @@ namespace ModularBridge.Bridge
                 if (!candidate.IsPlaced)
                     continue;
                 
-                Vector3Int candidatePos = candidate.GridPosition;
+                var candidatePos = candidate.GridPosition;
                 
-                // Check if on same axis (X or Z)
-                bool sameX = candidatePos.x == currentGridPosition.x;
-                bool sameZ = candidatePos.z == currentGridPosition.z;
+                var sameX = candidatePos.x == currentGridPosition.x;
+                var sameZ = candidatePos.z == currentGridPosition.z;
                 
                 if (sameX || sameZ)
                 {
@@ -370,38 +323,34 @@ namespace ModularBridge.Bridge
         
         private void ShowBridgePreview()
         {
-            // Determine start and end positions
-            Vector3Int startPos = activeSegmentInstance.Type == BridgeSegment.SegmentType.Start
+            var startPos = activeSegmentInstance.Type == BridgeSegment.SegmentType.Start
                 ? currentGridPosition
                 : potentialConnectionTarget.GridPosition;
             
-            Vector3Int endPos = activeSegmentInstance.Type == BridgeSegment.SegmentType.End
+            var endPos = activeSegmentInstance.Type == BridgeSegment.SegmentType.End
                 ? currentGridPosition
                 : potentialConnectionTarget.GridPosition;
             
-            // Calculate bridge plan
-            BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(startPos, endPos, gameSettings);
+            var plan = BridgeBuilder.CalculateBridge(startPos, endPos, gameSettings);
             
             if (!plan.IsValid)
                 return;
             
-            // Create preview segments (skip start and end as they're already visible)
-            BridgeSettings settings = gameSettings.BridgeSettings;
+            var settings = gameSettings.BridgeSettings;
             
             for (int i = 1; i < plan.Placements.Count - 1; i++)
             {
                 var placement = plan.Placements[i];
                 
-                BridgeSegment prefab = settings.GetPrefabForType(placement.Type);
+                var prefab = settings.GetPrefabForType(placement.Type);
                 if (prefab == null)
                     continue;
                 
-                GameObject previewObj = Instantiate(prefab.gameObject, previewContainer);
+                var previewObj = Instantiate(prefab.gameObject, previewContainer);
                 previewObj.transform.position = gridSystem.GridToWorld(placement.GridPosition);
                 previewObj.transform.rotation = placement.Rotation;
                 
-                // Apply preview material
-                BridgeSegment previewSegment = previewObj.GetComponent<BridgeSegment>();
+                var previewSegment = previewObj.GetComponent<BridgeSegment>();
                 if (previewSegment != null)
                 {
                     previewSegment.ShowPlacementPreview(placement.GridPosition, true);
@@ -422,7 +371,5 @@ namespace ModularBridge.Bridge
             }
             previewSegments.Clear();
         }
-        
-        #endregion
     }
 }

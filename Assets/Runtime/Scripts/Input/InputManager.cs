@@ -3,9 +3,6 @@ using UnityEngine.InputSystem;
 
 namespace ModularBridge.Input
 {
-    /// <summary>
-    /// Central manager for all input in the game.
-    /// </summary>
     public class InputManager : MonoBehaviour
     {
         private GameInputActions inputActions;

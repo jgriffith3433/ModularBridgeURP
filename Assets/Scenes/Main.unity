@@ -451,7 +451,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bridgeSegmentPrefab: {fileID: 6305080990323162955, guid: 2ea201a9b36c7b346a478f035f4b11c5, type: 3}
   dragDropManager: {fileID: 537465148}
-  dragIcon: {fileID: 21300000, guid: b376403ba1d40a14a990cdda89e0baf2, type: 3}
   dragAlpha: 0.6
 --- !u!225 &388736387
 CanvasGroup:
@@ -557,7 +556,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bridgeSegmentPrefab: {fileID: 8083486522592347406, guid: a1bdc32de06bfce4da059a1afa991db4, type: 3}
   dragDropManager: {fileID: 537465148}
-  dragIcon: {fileID: 21300000, guid: b376403ba1d40a14a990cdda89e0baf2, type: 3}
   dragAlpha: 0.6
 --- !u!225 &398862874
 CanvasGroup:
@@ -889,6 +887,7 @@ MonoBehaviour:
     m_Bits: 64
   gridSystem: {fileID: 1538331397}
   gameSettings: {fileID: 11400000, guid: eac914847efaa444fa30efeb8e851b1e, type: 2}
+  inputManager: {fileID: 1944686671}
   previewContainer: {fileID: 72569903}
 --- !u!1 &537465146
 GameObject:

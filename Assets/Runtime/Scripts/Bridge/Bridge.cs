@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace ModularBridge.Bridge
 {
-    /// <summary>
-    /// Represents a complete bridge made up of multiple segments.
-    /// </summary>
     public class Bridge
     {
         public BridgeSegment StartSegment { get; private set; }
@@ -23,7 +20,6 @@ namespace ModularBridge.Bridge
             MiddleSegments = new List<BridgeSegment>();
             FillerSegments = new List<BridgeSegment>();
             
-            // Link segments to this bridge
             StartSegment.ParentBridge = this;
             EndSegment.ParentBridge = this;
         }
@@ -42,7 +38,7 @@ namespace ModularBridge.Bridge
         
         public List<BridgeSegment> GetAllSegments()
         {
-            List<BridgeSegment> all = new List<BridgeSegment>();
+            var all = new List<BridgeSegment>();
             all.Add(StartSegment);
             all.AddRange(MiddleSegments);
             all.AddRange(FillerSegments);

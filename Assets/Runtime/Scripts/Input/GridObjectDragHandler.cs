@@ -5,10 +5,6 @@ using ModularBridge.Core;
 
 namespace ModularBridge.Input
 {
-    /// <summary>
-    /// Detects and handles dragging of already-placed GridObjects in 3D space.
-    /// Allows moving bridge segments that have been placed on the grid.
-    /// </summary>
     public class GridObjectDragHandler : MonoBehaviour
     {
         [Header("References")]
@@ -39,6 +35,7 @@ namespace ModularBridge.Input
             {
                 inputManager.InputActions.Gameplay.Click.performed += OnClickPerformed;
                 inputManager.InputActions.Gameplay.Click.canceled += OnClickReleased;
+                inputManager.InputActions.Gameplay.Point.performed += OnPointerMove;
             }
         }
         
@@ -48,42 +45,39 @@ namespace ModularBridge.Input
             {
                 inputManager.InputActions.Gameplay.Click.performed -= OnClickPerformed;
                 inputManager.InputActions.Gameplay.Click.canceled -= OnClickReleased;
+                inputManager.InputActions.Gameplay.Point.performed -= OnPointerMove;
             }
         }
         
-        private void Update()
+        private void OnPointerMove(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
-            if (isDragging && inputManager.InputActions != null)
+            if (!isDragging)
+                return;
+            
+            currentMousePosition = context.ReadValue<Vector2>();
+            
+            var eventData = new PointerEventData(EventSystem.current)
             {
-                currentMousePosition = inputManager.InputActions.Gameplay.Point.ReadValue<Vector2>();
-                
-                // Update the placement controller with the current mouse position
-                PointerEventData eventData = new PointerEventData(EventSystem.current)
-                {
-                    position = currentMousePosition
-                };
-                placementController.UpdatePlacement(eventData);
-            }
+                position = currentMousePosition
+            };
+            placementController.UpdatePlacement(eventData);
         }
         
         private void OnClickPerformed(UnityEngine.InputSystem.InputAction.CallbackContext context)
         {
-            // Don't interfere if already placing something
             if (placementController.IsPlacing)
                 return;
             
             currentMousePosition = inputManager.InputActions.Gameplay.Point.ReadValue<Vector2>();
             
-            // Raycast to see if we clicked on a GridObject
-            Ray ray = mainCamera.ScreenPointToRay(currentMousePosition);
+            var ray = mainCamera.ScreenPointToRay(currentMousePosition);
             
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, gridObjectLayer))
+            if (Physics.Raycast(ray, out var hit, Mathf.Infinity, gridObjectLayer))
             {
-                BridgeSegment segment = hit.collider.GetComponentInParent<BridgeSegment>();
+                var segment = hit.collider.GetComponentInParent<BridgeSegment>();
                 
                 if (segment != null && segment.IsPlaced)
                 {
-                    // Only allow dragging Start and End segments
                     if (segment.Type == BridgeSegment.SegmentType.Start || 
                         segment.Type == BridgeSegment.SegmentType.End)
                     {
@@ -106,13 +100,11 @@ namespace ModularBridge.Input
             selectedSegment = segment;
             isDragging = true;
             
-            // Create a fake PointerEventData for the placement controller
-            PointerEventData eventData = new PointerEventData(EventSystem.current)
+            var eventData = new PointerEventData(EventSystem.current)
             {
                 position = currentMousePosition
             };
             
-            // Start the move operation
             placementController.BeginMove(selectedSegment, eventData);
         }
         
@@ -121,14 +113,12 @@ namespace ModularBridge.Input
             if (selectedSegment == null || !isDragging)
                 return;
             
-            // Create a fake PointerEventData for the placement controller
-            PointerEventData eventData = new PointerEventData(EventSystem.current)
+            var eventData = new PointerEventData(EventSystem.current)
             {
                 position = currentMousePosition
             };
             
-            // Complete the move
-            bool success = placementController.CompleteMove(eventData);
+            var success = placementController.CompleteMove(eventData);
             
             selectedSegment = null;
             isDragging = false;

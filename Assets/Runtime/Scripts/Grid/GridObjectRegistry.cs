@@ -3,24 +3,12 @@ using UnityEngine;
 
 namespace ModularBridge.Grid
 {
-    /// <summary>
-    /// High-performance spatial data structure for looking up GridObjects.
-    /// Uses a Dictionary for O(1) lookups by grid position.
-    /// </summary>
     public class GridObjectRegistry
     {
-        // Fast lookup: grid position -> GridObject
         private readonly Dictionary<Vector3Int, GridObject> objectsByPosition = new Dictionary<Vector3Int, GridObject>();
-        
-        // Fast lookup by type (for finding specific objects like bridge segments)
         private readonly Dictionary<System.Type, HashSet<GridObject>> objectsByType = new Dictionary<System.Type, HashSet<GridObject>>();
-        
-        // All registered objects
         private readonly HashSet<GridObject> allObjects = new HashSet<GridObject>();
         
-        /// <summary>
-        /// Register an object and all cells it occupies.
-        /// </summary>
         public void Register(GridObject gridObject)
         {
             if (gridObject == null)
@@ -29,10 +17,9 @@ namespace ModularBridge.Grid
             if (allObjects.Contains(gridObject))
                 return;
             
-            // Register all cells this object occupies
-            Vector3Int basePos = gridObject.GridPosition;
-            Vector3Int min = gridObject.GridMin;
-            Vector3Int max = gridObject.GridMax;
+            var basePos = gridObject.GridPosition;
+            var min = gridObject.GridMin;
+            var max = gridObject.GridMax;
             
             for (int x = min.x; x <= max.x; x++)
             {
@@ -40,7 +27,7 @@ namespace ModularBridge.Grid
                 {
                     for (int z = min.z; z <= max.z; z++)
                     {
-                        Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
+                        var cellPos = basePos + new Vector3Int(x, y, z);
                         
                         if (objectsByPosition.ContainsKey(cellPos))
                             continue;
@@ -50,30 +37,24 @@ namespace ModularBridge.Grid
                 }
             }
             
-            // Add to type lookup
-            System.Type objectType = gridObject.GetType();
+            var objectType = gridObject.GetType();
             if (!objectsByType.ContainsKey(objectType))
             {
                 objectsByType[objectType] = new HashSet<GridObject>();
             }
             objectsByType[objectType].Add(gridObject);
             
-            // Add to all objects
             allObjects.Add(gridObject);
         }
         
-        /// <summary>
-        /// Unregister an object and free all its cells.
-        /// </summary>
         public void Unregister(GridObject gridObject)
         {
             if (gridObject == null || !allObjects.Contains(gridObject))
                 return;
             
-            // Unregister all cells
-            Vector3Int basePos = gridObject.GridPosition;
-            Vector3Int min = gridObject.GridMin;
-            Vector3Int max = gridObject.GridMax;
+            var basePos = gridObject.GridPosition;
+            var min = gridObject.GridMin;
+            var max = gridObject.GridMax;
             
             for (int x = min.x; x <= max.x; x++)
             {
@@ -81,42 +62,31 @@ namespace ModularBridge.Grid
                 {
                     for (int z = min.z; z <= max.z; z++)
                     {
-                        Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
+                        var cellPos = basePos + new Vector3Int(x, y, z);
                         objectsByPosition.Remove(cellPos);
                     }
                 }
             }
             
-            // Remove from type lookup
-            System.Type objectType = gridObject.GetType();
+            var objectType = gridObject.GetType();
             if (objectsByType.ContainsKey(objectType))
             {
                 objectsByType[objectType].Remove(gridObject);
             }
             
-            // Remove from all objects
             allObjects.Remove(gridObject);
         }
         
-        /// <summary>
-        /// Check if a cell is occupied. O(1) lookup.
-        /// </summary>
         public bool IsCellOccupied(Vector3Int gridPosition)
         {
             return objectsByPosition.ContainsKey(gridPosition);
         }
         
-        /// <summary>
-        /// Get the object at a specific cell. O(1) lookup.
-        /// </summary>
         public GridObject GetObjectAt(Vector3Int gridPosition)
         {
-            return objectsByPosition.TryGetValue(gridPosition, out GridObject obj) ? obj : null;
+            return objectsByPosition.TryGetValue(gridPosition, out var obj) ? obj : null;
         }
         
-        /// <summary>
-        /// Check if an object can be placed at a position with a given size.
-        /// </summary>
         public bool CanPlaceObject(Vector3Int gridPosition, Vector3Int size, GridObject ignoreObject = null)
         {
             for (int x = 0; x < size.x; x++)
@@ -125,9 +95,9 @@ namespace ModularBridge.Grid
                 {
                     for (int z = 0; z < size.z; z++)
                     {
-                        Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
+                        var cellPos = gridPosition + new Vector3Int(x, y, z);
                         
-                        if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
+                        if (objectsByPosition.TryGetValue(cellPos, out var existingObject))
                         {
                             if (existingObject != ignoreObject)
                             {
@@ -141,13 +111,10 @@ namespace ModularBridge.Grid
             return true;
         }
         
-        /// <summary>
-        /// Check if a GridObject can be placed at a position using its bounds.
-        /// </summary>
         public bool CanPlaceObject(Vector3Int gridPosition, GridObject checkObject, GridObject ignoreObject = null)
         {
-            Vector3Int min = checkObject.GridMin;
-            Vector3Int max = checkObject.GridMax;
+            var min = checkObject.GridMin;
+            var max = checkObject.GridMax;
             
             for (int x = min.x; x <= max.x; x++)
             {
@@ -155,9 +122,9 @@ namespace ModularBridge.Grid
                 {
                     for (int z = min.z; z <= max.z; z++)
                     {
-                        Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
+                        var cellPos = gridPosition + new Vector3Int(x, y, z);
                         
-                        if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
+                        if (objectsByPosition.TryGetValue(cellPos, out var existingObject))
                         {
                             if (existingObject != ignoreObject)
                             {
@@ -171,14 +138,11 @@ namespace ModularBridge.Grid
             return true;
         }
         
-        /// <summary>
-        /// Get all objects of a specific type. O(1) lookup.
-        /// </summary>
         public IEnumerable<T> GetObjectsOfType<T>() where T : GridObject
         {
-            System.Type type = typeof(T);
+            var type = typeof(T);
             
-            if (objectsByType.TryGetValue(type, out HashSet<GridObject> objects))
+            if (objectsByType.TryGetValue(type, out var objects))
             {
                 foreach (var obj in objects)
                 {
@@ -187,13 +151,10 @@ namespace ModularBridge.Grid
             }
         }
         
-        /// <summary>
-        /// Get all objects within a radius of a point.
-        /// </summary>
         public List<GridObject> GetObjectsInRadius(Vector3Int center, int radius)
         {
-            List<GridObject> results = new List<GridObject>();
-            HashSet<GridObject> added = new HashSet<GridObject>();
+            var results = new List<GridObject>();
+            var added = new HashSet<GridObject>();
             
             for (int x = -radius; x <= radius; x++)
             {
@@ -201,9 +162,9 @@ namespace ModularBridge.Grid
                 {
                     for (int z = -radius; z <= radius; z++)
                     {
-                        Vector3Int checkPos = center + new Vector3Int(x, y, z);
+                        var checkPos = center + new Vector3Int(x, y, z);
                         
-                        if (objectsByPosition.TryGetValue(checkPos, out GridObject obj))
+                        if (objectsByPosition.TryGetValue(checkPos, out var obj))
                         {
                             if (!added.Contains(obj))
                             {
@@ -218,9 +179,6 @@ namespace ModularBridge.Grid
             return results;
         }
         
-        /// <summary>
-        /// Clear all registered objects.
-        /// </summary>
         public void Clear()
         {
             objectsByPosition.Clear();
