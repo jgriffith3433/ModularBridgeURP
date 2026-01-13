@@ -1,14 +1,19 @@
 using UnityEngine;
+using ModularBridge.Bridge;
+using ModularBridge.Grid;
 
-[CreateAssetMenu(fileName = "GameSettings", menuName = "Game/Game Settings")]
-public class GameSettings : ScriptableObject
+namespace ModularBridge.Core
 {
-    [Header("Grid")]
-    [SerializeField] private GameGridSettings gridSettings;
-    
-    [Header("Bridge")]
-    [SerializeField] private BridgeSettings bridgeSettings;
-    
-    public GameGridSettings GridSettings => gridSettings;
-    public BridgeSettings BridgeSettings => bridgeSettings;
+    [CreateAssetMenu(fileName = "GameSettings", menuName = "Game/Game Settings")]
+    public class GameSettings : ScriptableObject
+    {
+        [Header("Grid")]
+        [SerializeField] private GameGridSettings gridSettings;
+        
+        [Header("Bridge")]
+        [SerializeField] private BridgeSettings bridgeSettings;
+        
+        public GameGridSettings GridSettings => gridSettings;
+        public BridgeSettings BridgeSettings => bridgeSettings;
+    }
 }

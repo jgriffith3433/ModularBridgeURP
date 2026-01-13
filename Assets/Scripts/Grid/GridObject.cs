@@ -1,221 +1,202 @@
 using UnityEngine;
+using ModularBridge.Core;
 
-/// <summary>
-/// Base component for any object that exists on the game grid.
-/// Handles grid positioning, placement validation, and visual feedback.
-/// </summary>
-[RequireComponent(typeof(Renderer))]
-public class GridObject : MonoBehaviour
+namespace ModularBridge.Grid
 {
-    [Header("Grid Properties")]
-    [Tooltip("Minimum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
-    [SerializeField] private Vector3Int gridMin = Vector3Int.zero;
-    [Tooltip("Maximum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
-    [SerializeField] private Vector3Int gridMax = Vector3Int.zero;
-    
-    [Header("Dependencies")]
-    [SerializeField] private GridSystem gridSystem;
-    [SerializeField] private GameSettings gameSettings;
-    
-    [Header("Placement Materials")]
-    [SerializeField] private Material validPlacementMaterial;
-    [SerializeField] private Material invalidPlacementMaterial;
-    
-    private Vector3Int currentGridPosition;
-    private bool isPlaced = false;
-    private bool isShowingPreview = false;
-    
-    private Renderer[] renderers;
-    private Material[][] originalMaterials;
-    
-    // Public properties
-    public Vector3Int GridMin => gridMin;
-    public Vector3Int GridMax => gridMax;
-    public Vector3Int GridSize => gridMax - gridMin + Vector3Int.one; // Calculate size from bounds
-    public Vector3Int GridPosition => currentGridPosition;
-    public bool IsPlaced => isPlaced;
-    
-    protected virtual void Awake()
+    /// <summary>
+    /// Base component for any object that exists on the game grid.
+    /// Handles grid positioning, placement validation, and visual feedback.
+    /// </summary>
+    [RequireComponent(typeof(Renderer))]
+    public class GridObject : MonoBehaviour
     {
-        if (gridSystem == null)
-            gridSystem = Game.Instance.Grid;
+        [Header("Grid Properties")]
+        [Tooltip("Minimum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
+        [SerializeField] private Vector3Int gridMin = Vector3Int.zero;
+        [Tooltip("Maximum bounds of the grid footprint (inclusive). For 2D grids, use Y=0.")]
+        [SerializeField] private Vector3Int gridMax = Vector3Int.zero;
         
-        if (gameSettings == null)
-            gameSettings = Game.Instance.Settings;
+        [Header("Dependencies")]
+        [SerializeField] private GridSystem gridSystem;
+        [SerializeField] private GameSettings gameSettings;
         
-        if (gameSettings == null)
-            throw new System.Exception($"[GridObject] GameSettings not assigned on {name}!");
+        [Header("Placement Materials")]
+        [SerializeField] private Material validPlacementMaterial;
+        [SerializeField] private Material invalidPlacementMaterial;
         
-        if (gridSystem == null)
-            throw new System.Exception($"[GridObject] GridSystem not assigned on {name}!");
+        private Vector3Int currentGridPosition;
+        private bool isPlaced = false;
+        private bool isShowingPreview = false;
         
-        CacheRenderers();
-    }
-    
-    private void CacheRenderers()
-    {
-        renderers = GetComponentsInChildren<Renderer>();
-        originalMaterials = new Material[renderers.Length][];
+        private Renderer[] renderers;
+        private Material[][] originalMaterials;
         
-        for (int i = 0; i < renderers.Length; i++)
+        // Public properties
+        public Vector3Int GridMin => gridMin;
+        public Vector3Int GridMax => gridMax;
+        public Vector3Int GridSize => gridMax - gridMin + Vector3Int.one; // Calculate size from bounds
+        public Vector3Int GridPosition => currentGridPosition;
+        public bool IsPlaced => isPlaced;
+        
+        protected virtual void Awake()
         {
-            originalMaterials[i] = renderers[i].sharedMaterials;
-        }
-    }
-    
-    #region Placement
-    
-    /// <summary>
-    /// Set grid position without placing (for preview).
-    /// </summary>
-    public void SetGridPosition(Vector3Int gridPosition)
-    {
-        currentGridPosition = gridPosition;
-        transform.position = gridSystem.GridToWorld(gridPosition);
-    }
-    
-    /// <summary>
-    /// Show placement preview with validity feedback.
-    /// </summary>
-    public void ShowPlacementPreview(Vector3Int gridPosition, bool isValid)
-    {
-        SetGridPosition(gridPosition);
-        isShowingPreview = true;
-        
-        Material previewMaterial = isValid ? validPlacementMaterial : invalidPlacementMaterial;
-        
-        if (previewMaterial != null)
-        {
-            ApplyMaterialToAll(previewMaterial);
-        }
-    }
-    
-    /// <summary>
-    /// Hide placement preview and restore original materials.
-    /// </summary>
-    public void HidePlacementPreview()
-    {
-        if (!isShowingPreview)
-            return;
-        
-        isShowingPreview = false;
-        RestoreOriginalMaterials();
-    }
-    
-    /// <summary>
-    /// Attempt to place this object at the specified grid position.
-    /// </summary>
-    public bool TryPlace(Vector3Int gridPosition)
-    {
-        if (!gridSystem.CanPlaceObject(gridPosition, this))
-        {
-            Debug.LogWarning($"[GridObject] Cannot place {name} at {gridPosition} - cells occupied");
-            return false;
+            if (gridSystem == null)
+                gridSystem = Game.Instance.Grid;
+            
+            if (gameSettings == null)
+                gameSettings = Game.Instance.Settings;
+            
+            if (gameSettings == null)
+                throw new System.Exception($"[GridObject] GameSettings not assigned on {name}!");
+            
+            if (gridSystem == null)
+                throw new System.Exception($"[GridObject] GridSystem not assigned on {name}!");
+            
+            CacheRenderers();
         }
         
-        SetGridPosition(gridPosition);
-        gridSystem.Registry.Register(this);
-        isPlaced = true;
-        isShowingPreview = false;
-        
-        RestoreOriginalMaterials();
-        OnPlaced();
-        
-        return true;
-    }
-    
-    /// <summary>
-    /// Remove this object from the grid.
-    /// </summary>
-    public void Remove()
-    {
-        if (!isPlaced)
-            return;
-        
-        gridSystem.Registry.Unregister(this);
-        isPlaced = false;
-        
-        OnRemoved();
-    }
-    
-    #endregion
-    
-    #region Material Management
-    
-    private void ApplyMaterialToAll(Material material)
-    {
-        foreach (var renderer in renderers)
+        private void CacheRenderers()
         {
-            Material[] materials = new Material[renderer.sharedMaterials.Length];
-            for (int i = 0; i < materials.Length; i++)
+            renderers = GetComponentsInChildren<Renderer>();
+            originalMaterials = new Material[renderers.Length][];
+            
+            for (int i = 0; i < renderers.Length; i++)
             {
-                materials[i] = material;
+                originalMaterials[i] = renderers[i].sharedMaterials;
             }
-            renderer.materials = materials;
         }
-    }
-    
-    private void RestoreOriginalMaterials()
-    {
-        for (int i = 0; i < renderers.Length; i++)
+        
+        #region Placement
+        
+        /// <summary>
+        /// Set grid position without placing (for preview).
+        /// </summary>
+        public void SetGridPosition(Vector3Int gridPosition)
         {
-            renderers[i].materials = originalMaterials[i];
+            currentGridPosition = gridPosition;
+            transform.position = gridSystem.GridToWorld(gridPosition);
         }
-    }
-    
-    #endregion
-    
-    #region Virtual Methods
-    
-    protected virtual void OnPlaced()
-    {
-        // Override in derived classes for placement logic
-    }
-    
-    protected virtual void OnRemoved()
-    {
-        // Override in derived classes for removal logic
-    }
-    
-    #endregion
-    
-    private void OnDestroy()
-    {
-        Remove();
-    }
-    
-    #region Editor Helpers
-    
-    private void OnDrawGizmos()
-    {
-        // Always show grid footprint
-        Vector3 cellSize = Vector3.one * (gameSettings?.GridSettings?.CellSize ?? 1f);
         
-        // Use semi-transparent yellow for unselected objects
-        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
-        
-        for (int x = gridMin.x; x <= gridMax.x; x++)
+        /// <summary>
+        /// Show placement preview with validity feedback.
+        /// </summary>
+        public void ShowPlacementPreview(Vector3Int gridPosition, bool isValid)
         {
-            for (int y = gridMin.y; y <= gridMax.y; y++)
+            SetGridPosition(gridPosition);
+            isShowingPreview = true;
+            
+            Material previewMaterial = isValid ? validPlacementMaterial : invalidPlacementMaterial;
+            
+            if (previewMaterial != null)
             {
-                for (int z = gridMin.z; z <= gridMax.z; z++)
+                ApplyMaterialToAll(previewMaterial);
+            }
+        }
+        
+        /// <summary>
+        /// Hide placement preview and restore original materials.
+        /// </summary>
+        public void HidePlacementPreview()
+        {
+            if (!isShowingPreview)
+                return;
+            
+            isShowingPreview = false;
+            RestoreOriginalMaterials();
+        }
+        
+        /// <summary>
+        /// Attempt to place this object at the specified grid position.
+        /// </summary>
+        public bool TryPlace(Vector3Int gridPosition)
+        {
+            if (!gridSystem.CanPlaceObject(gridPosition, this))
+            {
+                Debug.LogWarning($"[GridObject] Cannot place {name} at {gridPosition} - cells occupied");
+                return false;
+            }
+            
+            SetGridPosition(gridPosition);
+            gridSystem.Registry.Register(this);
+            isPlaced = true;
+            isShowingPreview = false;
+            
+            RestoreOriginalMaterials();
+            OnPlaced();
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Remove this object from the grid.
+        /// </summary>
+        public void Remove()
+        {
+            if (!isPlaced)
+                return;
+            
+            gridSystem.Registry.Unregister(this);
+            isPlaced = false;
+            
+            OnRemoved();
+        }
+        
+        #endregion
+        
+        #region Material Management
+        
+        private void ApplyMaterialToAll(Material material)
+        {
+            foreach (var renderer in renderers)
+            {
+                Material[] materials = new Material[renderer.sharedMaterials.Length];
+                for (int i = 0; i < materials.Length; i++)
                 {
-                    Vector3 offset = new Vector3(x, y, z);
-                    Vector3 center = transform.position + Vector3.Scale(offset, cellSize);
-                    Gizmos.DrawWireCube(center, cellSize * 0.9f);
+                    materials[i] = material;
                 }
+                renderer.materials = materials;
             }
         }
-    }
-    
-    private void OnDrawGizmosSelected()
-    {
-        if (!Application.isPlaying)
+        
+        private void RestoreOriginalMaterials()
         {
-            // Show grid footprint in editor with bright color when selected
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                renderers[i].materials = originalMaterials[i];
+            }
+        }
+        
+        #endregion
+        
+        #region Virtual Methods
+        
+        protected virtual void OnPlaced()
+        {
+            // Override in derived classes for placement logic
+        }
+        
+        protected virtual void OnRemoved()
+        {
+            // Override in derived classes for removal logic
+        }
+        
+        #endregion
+        
+        private void OnDestroy()
+        {
+            Remove();
+        }
+        
+        #region Editor Helpers
+        
+        private void OnDrawGizmos()
+        {
+            // Always show grid footprint
             Vector3 cellSize = Vector3.one * (gameSettings?.GridSettings?.CellSize ?? 1f);
             
-            Gizmos.color = Color.cyan;
+            // Use semi-transparent yellow for unselected objects
+            Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+            
             for (int x = gridMin.x; x <= gridMax.x; x++)
             {
                 for (int y = gridMin.y; y <= gridMax.y; y++)
@@ -229,7 +210,30 @@ public class GridObject : MonoBehaviour
                 }
             }
         }
+        
+        private void OnDrawGizmosSelected()
+        {
+            if (!Application.isPlaying)
+            {
+                // Show grid footprint in editor with bright color when selected
+                Vector3 cellSize = Vector3.one * (gameSettings?.GridSettings?.CellSize ?? 1f);
+                
+                Gizmos.color = Color.cyan;
+                for (int x = gridMin.x; x <= gridMax.x; x++)
+                {
+                    for (int y = gridMin.y; y <= gridMax.y; y++)
+                    {
+                        for (int z = gridMin.z; z <= gridMax.z; z++)
+                        {
+                            Vector3 offset = new Vector3(x, y, z);
+                            Vector3 center = transform.position + Vector3.Scale(offset, cellSize);
+                            Gizmos.DrawWireCube(center, cellSize * 0.9f);
+                        }
+                    }
+                }
+            }
+        }
+        
+        #endregion
     }
-    
-    #endregion
 }

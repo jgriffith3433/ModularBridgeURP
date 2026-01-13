@@ -1,237 +1,231 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// High-performance spatial data structure for looking up GridObjects.
-/// Uses a Dictionary for O(1) lookups by grid position.
-/// </summary>
-public class GridObjectRegistry
+namespace ModularBridge.Grid
 {
-    // Fast lookup: grid position -> GridObject
-    private readonly Dictionary<Vector3Int, GridObject> objectsByPosition = new Dictionary<Vector3Int, GridObject>();
-    
-    // Fast lookup by type (for finding specific objects like bridge segments)
-    private readonly Dictionary<System.Type, HashSet<GridObject>> objectsByType = new Dictionary<System.Type, HashSet<GridObject>>();
-    
-    // All registered objects
-    private readonly HashSet<GridObject> allObjects = new HashSet<GridObject>();
-    
     /// <summary>
-    /// Register an object and all cells it occupies.
+    /// High-performance spatial data structure for looking up GridObjects.
+    /// Uses a Dictionary for O(1) lookups by grid position.
     /// </summary>
-    public void Register(GridObject gridObject)
+    public class GridObjectRegistry
     {
-        if (gridObject == null)
-        {
-            Debug.LogError("[GridObjectRegistry] Attempted to register null GridObject");
-            return;
-        }
+        // Fast lookup: grid position -> GridObject
+        private readonly Dictionary<Vector3Int, GridObject> objectsByPosition = new Dictionary<Vector3Int, GridObject>();
         
-        if (allObjects.Contains(gridObject))
-        {
-            Debug.LogWarning($"[GridObjectRegistry] Object {gridObject.name} is already registered");
-            return;
-        }
+        // Fast lookup by type (for finding specific objects like bridge segments)
+        private readonly Dictionary<System.Type, HashSet<GridObject>> objectsByType = new Dictionary<System.Type, HashSet<GridObject>>();
         
-        // Register all cells this object occupies
-        Vector3Int basePos = gridObject.GridPosition;
-        Vector3Int min = gridObject.GridMin;
-        Vector3Int max = gridObject.GridMax;
+        // All registered objects
+        private readonly HashSet<GridObject> allObjects = new HashSet<GridObject>();
         
-        for (int x = min.x; x <= max.x; x++)
+        /// <summary>
+        /// Register an object and all cells it occupies.
+        /// </summary>
+        public void Register(GridObject gridObject)
         {
-            for (int y = min.y; y <= max.y; y++)
+            if (gridObject == null)
+                return;
+            
+            if (allObjects.Contains(gridObject))
+                return;
+            
+            // Register all cells this object occupies
+            Vector3Int basePos = gridObject.GridPosition;
+            Vector3Int min = gridObject.GridMin;
+            Vector3Int max = gridObject.GridMax;
+            
+            for (int x = min.x; x <= max.x; x++)
             {
-                for (int z = min.z; z <= max.z; z++)
+                for (int y = min.y; y <= max.y; y++)
                 {
-                    Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
-                    
-                    if (objectsByPosition.ContainsKey(cellPos))
+                    for (int z = min.z; z <= max.z; z++)
                     {
-                        Debug.LogWarning($"[GridObjectRegistry] Cell {cellPos} is already occupied!");
-                        continue;
+                        Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
+                        
+                        if (objectsByPosition.ContainsKey(cellPos))
+                            continue;
+                        
+                        objectsByPosition[cellPos] = gridObject;
                     }
-                    
-                    objectsByPosition[cellPos] = gridObject;
                 }
             }
-        }
-        
-        // Add to type lookup
-        System.Type objectType = gridObject.GetType();
-        if (!objectsByType.ContainsKey(objectType))
-        {
-            objectsByType[objectType] = new HashSet<GridObject>();
-        }
-        objectsByType[objectType].Add(gridObject);
-        
-        // Add to all objects
-        allObjects.Add(gridObject);
-    }
-    
-    /// <summary>
-    /// Unregister an object and free all its cells.
-    /// </summary>
-    public void Unregister(GridObject gridObject)
-    {
-        if (gridObject == null || !allObjects.Contains(gridObject))
-            return;
-        
-        // Unregister all cells
-        Vector3Int basePos = gridObject.GridPosition;
-        Vector3Int min = gridObject.GridMin;
-        Vector3Int max = gridObject.GridMax;
-        
-        for (int x = min.x; x <= max.x; x++)
-        {
-            for (int y = min.y; y <= max.y; y++)
+            
+            // Add to type lookup
+            System.Type objectType = gridObject.GetType();
+            if (!objectsByType.ContainsKey(objectType))
             {
-                for (int z = min.z; z <= max.z; z++)
-                {
-                    Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
-                    objectsByPosition.Remove(cellPos);
-                }
+                objectsByType[objectType] = new HashSet<GridObject>();
             }
+            objectsByType[objectType].Add(gridObject);
+            
+            // Add to all objects
+            allObjects.Add(gridObject);
         }
         
-        // Remove from type lookup
-        System.Type objectType = gridObject.GetType();
-        if (objectsByType.ContainsKey(objectType))
+        /// <summary>
+        /// Unregister an object and free all its cells.
+        /// </summary>
+        public void Unregister(GridObject gridObject)
         {
-            objectsByType[objectType].Remove(gridObject);
-        }
-        
-        // Remove from all objects
-        allObjects.Remove(gridObject);
-    }
-    
-    /// <summary>
-    /// Check if a cell is occupied. O(1) lookup.
-    /// </summary>
-    public bool IsCellOccupied(Vector3Int gridPosition)
-    {
-        return objectsByPosition.ContainsKey(gridPosition);
-    }
-    
-    /// <summary>
-    /// Get the object at a specific cell. O(1) lookup.
-    /// </summary>
-    public GridObject GetObjectAt(Vector3Int gridPosition)
-    {
-        return objectsByPosition.TryGetValue(gridPosition, out GridObject obj) ? obj : null;
-    }
-    
-    /// <summary>
-    /// Check if an object can be placed at a position with a given size.
-    /// </summary>
-    public bool CanPlaceObject(Vector3Int gridPosition, Vector3Int size, GridObject ignoreObject = null)
-    {
-        for (int x = 0; x < size.x; x++)
-        {
-            for (int y = 0; y < size.y; y++)
+            if (gridObject == null || !allObjects.Contains(gridObject))
+                return;
+            
+            // Unregister all cells
+            Vector3Int basePos = gridObject.GridPosition;
+            Vector3Int min = gridObject.GridMin;
+            Vector3Int max = gridObject.GridMax;
+            
+            for (int x = min.x; x <= max.x; x++)
             {
-                for (int z = 0; z < size.z; z++)
+                for (int y = min.y; y <= max.y; y++)
                 {
-                    Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
-                    
-                    if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
+                    for (int z = min.z; z <= max.z; z++)
                     {
-                        if (existingObject != ignoreObject)
+                        Vector3Int cellPos = basePos + new Vector3Int(x, y, z);
+                        objectsByPosition.Remove(cellPos);
+                    }
+                }
+            }
+            
+            // Remove from type lookup
+            System.Type objectType = gridObject.GetType();
+            if (objectsByType.ContainsKey(objectType))
+            {
+                objectsByType[objectType].Remove(gridObject);
+            }
+            
+            // Remove from all objects
+            allObjects.Remove(gridObject);
+        }
+        
+        /// <summary>
+        /// Check if a cell is occupied. O(1) lookup.
+        /// </summary>
+        public bool IsCellOccupied(Vector3Int gridPosition)
+        {
+            return objectsByPosition.ContainsKey(gridPosition);
+        }
+        
+        /// <summary>
+        /// Get the object at a specific cell. O(1) lookup.
+        /// </summary>
+        public GridObject GetObjectAt(Vector3Int gridPosition)
+        {
+            return objectsByPosition.TryGetValue(gridPosition, out GridObject obj) ? obj : null;
+        }
+        
+        /// <summary>
+        /// Check if an object can be placed at a position with a given size.
+        /// </summary>
+        public bool CanPlaceObject(Vector3Int gridPosition, Vector3Int size, GridObject ignoreObject = null)
+        {
+            for (int x = 0; x < size.x; x++)
+            {
+                for (int y = 0; y < size.y; y++)
+                {
+                    for (int z = 0; z < size.z; z++)
+                    {
+                        Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
+                        
+                        if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
                         {
-                            return false;
+                            if (existingObject != ignoreObject)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
             }
+            
+            return true;
         }
         
-        return true;
-    }
-    
-    /// <summary>
-    /// Check if a GridObject can be placed at a position using its bounds.
-    /// </summary>
-    public bool CanPlaceObject(Vector3Int gridPosition, GridObject checkObject, GridObject ignoreObject = null)
-    {
-        Vector3Int min = checkObject.GridMin;
-        Vector3Int max = checkObject.GridMax;
-        
-        for (int x = min.x; x <= max.x; x++)
+        /// <summary>
+        /// Check if a GridObject can be placed at a position using its bounds.
+        /// </summary>
+        public bool CanPlaceObject(Vector3Int gridPosition, GridObject checkObject, GridObject ignoreObject = null)
         {
-            for (int y = min.y; y <= max.y; y++)
+            Vector3Int min = checkObject.GridMin;
+            Vector3Int max = checkObject.GridMax;
+            
+            for (int x = min.x; x <= max.x; x++)
             {
-                for (int z = min.z; z <= max.z; z++)
+                for (int y = min.y; y <= max.y; y++)
                 {
-                    Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
-                    
-                    if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
+                    for (int z = min.z; z <= max.z; z++)
                     {
-                        if (existingObject != ignoreObject)
+                        Vector3Int cellPos = gridPosition + new Vector3Int(x, y, z);
+                        
+                        if (objectsByPosition.TryGetValue(cellPos, out GridObject existingObject))
                         {
-                            return false;
+                            if (existingObject != ignoreObject)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
             }
+            
+            return true;
         }
         
-        return true;
-    }
-    
-    /// <summary>
-    /// Get all objects of a specific type. O(1) lookup.
-    /// </summary>
-    public IEnumerable<T> GetObjectsOfType<T>() where T : GridObject
-    {
-        System.Type type = typeof(T);
-        
-        if (objectsByType.TryGetValue(type, out HashSet<GridObject> objects))
+        /// <summary>
+        /// Get all objects of a specific type. O(1) lookup.
+        /// </summary>
+        public IEnumerable<T> GetObjectsOfType<T>() where T : GridObject
         {
-            foreach (var obj in objects)
+            System.Type type = typeof(T);
+            
+            if (objectsByType.TryGetValue(type, out HashSet<GridObject> objects))
             {
-                yield return obj as T;
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Get all objects within a radius of a point.
-    /// </summary>
-    public List<GridObject> GetObjectsInRadius(Vector3Int center, int radius)
-    {
-        List<GridObject> results = new List<GridObject>();
-        HashSet<GridObject> added = new HashSet<GridObject>();
-        
-        for (int x = -radius; x <= radius; x++)
-        {
-            for (int y = -radius; y <= radius; y++)
-            {
-                for (int z = -radius; z <= radius; z++)
+                foreach (var obj in objects)
                 {
-                    Vector3Int checkPos = center + new Vector3Int(x, y, z);
-                    
-                    if (objectsByPosition.TryGetValue(checkPos, out GridObject obj))
-                    {
-                        if (!added.Contains(obj))
-                        {
-                            results.Add(obj);
-                            added.Add(obj);
-                        }
-                    }
+                    yield return obj as T;
                 }
             }
         }
         
-        return results;
-    }
-    
-    /// <summary>
-    /// Clear all registered objects.
-    /// </summary>
-    public void Clear()
-    {
-        objectsByPosition.Clear();
-        objectsByType.Clear();
-        allObjects.Clear();
+        /// <summary>
+        /// Get all objects within a radius of a point.
+        /// </summary>
+        public List<GridObject> GetObjectsInRadius(Vector3Int center, int radius)
+        {
+            List<GridObject> results = new List<GridObject>();
+            HashSet<GridObject> added = new HashSet<GridObject>();
+            
+            for (int x = -radius; x <= radius; x++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    for (int z = -radius; z <= radius; z++)
+                    {
+                        Vector3Int checkPos = center + new Vector3Int(x, y, z);
+                        
+                        if (objectsByPosition.TryGetValue(checkPos, out GridObject obj))
+                        {
+                            if (!added.Contains(obj))
+                            {
+                                results.Add(obj);
+                                added.Add(obj);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return results;
+        }
+        
+        /// <summary>
+        /// Clear all registered objects.
+        /// </summary>
+        public void Clear()
+        {
+            objectsByPosition.Clear();
+            objectsByType.Clear();
+            allObjects.Clear();
+        }
     }
 }
