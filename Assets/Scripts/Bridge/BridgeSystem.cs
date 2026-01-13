@@ -126,6 +126,10 @@ namespace ModularBridge.Bridge
                 end = temp;
             }
             
+            // Remove start/end from standalone list IMMEDIATELY to prevent reuse
+            standaloneSegments.Remove(start);
+            standaloneSegments.Remove(end);
+            
             // Calculate bridge plan
             BridgeBuilder.BridgePlan plan = BridgeBuilder.CalculateBridge(
                 start.GridPosition,
@@ -134,7 +138,12 @@ namespace ModularBridge.Bridge
             );
             
             if (!plan.IsValid)
+            {
+                // Bridge plan failed - return segments to standalone
+                standaloneSegments.Add(start);
+                standaloneSegments.Add(end);
                 return null;
+            }
             
             // Create bridge object
             Bridge bridge = new Bridge(start, end);
@@ -169,15 +178,15 @@ namespace ModularBridge.Bridge
                     // Placement failed - cleanup and abort
                     Destroy(segment.gameObject);
                     bridge.Destroy();
+                    
+                    // Return segments to standalone since bridge creation failed
+                    standaloneSegments.Add(start);
+                    standaloneSegments.Add(end);
                     return null;
                 }
             }
             
-            // Remove start/end from standalone list
-            standaloneSegments.Remove(start);
-            standaloneSegments.Remove(end);
-            
-            // Add to active bridges
+            // Add to active bridges (start/end already removed from standalone above)
             activeBridges.Add(bridge);
             
             return bridge;
